@@ -1,0 +1,4 @@
+package ExternalDefines
+
+import NoWurst
+public constant boolean _DEBUG = true
