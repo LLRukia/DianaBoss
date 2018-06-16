@@ -1,0 +1,106 @@
+package StatisticsHelper
+
+import TriggerHelper
+import GlobalDefines
+
+class Statistics
+    private trigger m_tr = CreateTrigger()
+    real array[PLAYER_NUM] m_data
+    private string m_msg = ""
+    private int array[PLAYER_NUM] m_rank
+    private bool m_o = false
+    construct(string chat_trigger, bool b)
+        m_msg = chat_trigger
+        m_o = b
+        for i = 0 to PLAYER_NUM-1
+            m_data[i] = 0
+            m_tr.registerPlayerChatEvent(Player(i), chat_trigger, true)
+        m_tr..addAction(function display)
+            ..setData(this castTo int)
+
+    private function sort()
+        real array temp
+        for i = 0 to PLAYER_NUM - 1
+            temp[i] = m_data[i]
+        
+        for i = 0 to PLAYER_NUM - 1
+            real nMax = temp[i]
+            int nIndex = i
+            for j = i + 1 to PLAYER_NUM - 1
+                if nMax < temp[j]
+                    nMax = temp[j]
+                    nIndex = j
+            m_rank[i] = nIndex
+            if i != nIndex
+                real tmp = temp[i]
+                temp[i] = temp[nIndex]
+                temp[nIndex] = tmp
+
+    static function display()
+        var obj = GetTriggeringTrigger().getData() castTo Statistics
+        string msg = "|cffCF9E9E" + obj.m_msg.toUpperCase() + "|n"
+        obj.sort()
+        for i = 0 to PLAYER_NUM - 1
+            msg += "|cffA8FF24" + (i+1).toString() + ". "
+            player pl = Player(obj.m_rank[i])
+            msg += pl.getColor().toColor().toColorString() + GetPlayerName(pl)
+            msg += "|cffF9F900 - "
+            msg += obj.m_data[obj.m_rank[i]].toString(1)
+            msg += "(" + (obj.m_data[obj.m_rank[i]]/StatisticsHelper.get_time(obj.m_o)).toString() + ")|n"
+        printTimedToPlayerClear(msg, 4, GetTriggerPlayer())
+
+public class StatisticsHelper
+    static var dmg = new Statistics("dmg", false)
+    static var dmgr = new Statistics("dmgr", false)
+    static var dmgo = new Statistics("dmgo", true)
+    static var dmgro = new Statistics("dmgro", true)
+    static var hl = new Statistics("hl", false)
+    static var hlo = new Statistics("hlo", true)
+    static var death = new Statistics("deatho", true)
+    static bool is_working = false
+    static real timeo = 0
+    static timer tm = null
+    static function clear_and_accumulation()
+        for i = 0 to PLAYER_NUM-1
+            dmgo.m_data[i] += dmg.m_data[i]
+            hlo.m_data[i] += hl.m_data[i]
+            dmgro.m_data[i] += dmgr.m_data[i]
+            dmg.m_data[i] = 0
+            hl.m_data[i] = 0
+            dmgr.m_data[i] = 0
+        timeo += tm.getElapsed()
+
+    static function add_real(player pl, real r)
+        if not is_working
+            return
+        int index = pl.getId()
+        if r < 0
+            hl.m_data[index] -= r
+        else
+            dmgr.m_data[index] += r
+
+    static function add_final(player pl, real r)
+        if not is_working
+            return
+        int index = pl.getId()
+        dmg.m_data[index] += r
+
+    static function at_end()
+        is_working = false
+        tm.pause()
+
+    static function get_time(bool b) returns real
+        if not b
+            return tm.getElapsed()
+        else
+            return timeo
+    
+    static function at_start()
+        clear_and_accumulation()
+        is_working = true
+        if tm != null
+            tm.destr()
+        tm = CreateTimer()
+        tm.startPeriodic(99999., null)
+
+    private construct()

@@ -1,0 +1,65 @@
+package PlayerUnit
+import public initlater IPlayerUnit
+import public StatisticsHelper
+import PlayerHelper
+import LinkedList
+import TriggerHelper
+import initlater ReviveHelper
+
+public class PlayerUnit extends IPlayerUnit
+    protected var skill_list_ = new LinkedList<IBaseSkills>
+    protected Buffs buffs_
+    protected trigger death_trigger_ = CreateTrigger()
+    override function listen_all()
+        for s in skill_list_
+            s.listen()
+
+    override function is_invulnerable() returns boolean
+        return is_invulnerable_
+    
+    override function set_invulnerable(boolean _b)
+        is_invulnerable_ = _b
+
+    override function init_self()
+        skip
+
+    override function add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills obj)
+        buffs_.add_buff(id, cltp, tp, obj)
+
+    override function remove_buff(BuffClearType cltp, BuffType tp)
+        buffs_.remove_buff(cltp, tp)
+    
+    override function remove_buff(int id)
+        buffs_.remove_buff(id)
+    
+    override function has_buff(int id) returns bool
+        return buffs_.has_buff(id)
+
+    static function on_die()
+        let self = GetTriggeringTrigger().getData() castTo PlayerUnit
+        //obj.m_self_unit.getMana()
+        ReviveHelper.create_death_unit(self.uself_)
+    
+    construct(player pl, unit u)
+        uself_ = u
+        pself_ = pl
+        buffs_ = new Buffs(u)
+        death_trigger_..registerUnitEvent(u, EVENT_UNIT_DEATH)
+            ..addAction(function on_die)
+            ..setData(this castTo int)
+        //whenver create a playerunit, register it!
+        //actually, in this map, each player only has one unit
+        if not PlayerHelper.register_controlling_unit(pl, u)
+            Log.error("{0} repeat choose {1}".format(pl.getName(), u.getName()))
+
+    ondestroy
+        Log.debug("{0} ondestroy".format(uself_.getName()))
+        if not PlayerHelper.unregister_controlling_unit(pself_, uself_)
+            Log.error("{0} ondestroy cannot find {1}".format(pself_.getName(), uself_.getName()))
+        skill_list_.clear()
+
+    override function refresh()
+        uself_.setHP(uself_.getMaxHP())
+        uself_.setMana(uself_.getMaxMana())
+        for i in skill_list_
+            i.clear()

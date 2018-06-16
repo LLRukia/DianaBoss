@@ -1,0 +1,23 @@
+package PriestSkill
+
+import public Buffs
+import public StatisticsHelper
+import public initlater Heal
+import public initlater PowerInfusion
+import public initlater HolyWordShield
+import public initlater HolyNova
+import public initlater HolyMissile
+import public initlater DivineAegis
+import public initlater Revive
+
+import BaseSkills
+
+public class PriestSkill extends IBaseSkills
+    construct(unit caster)
+        super(caster)
+
+    override function listen()
+
+    override function on_buff_removed(unit _u)
+
+    override function clear()

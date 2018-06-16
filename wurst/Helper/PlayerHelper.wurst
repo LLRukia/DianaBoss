@@ -1,0 +1,70 @@
+package PlayerHelper
+import Table
+import initlater IceMage
+import initlater FireMage
+import initlater Warlock
+import initlater Priest
+import initlater ArcaneMage
+import initlater PlayerUnit
+
+public string array playernames
+
+public function player.get_unit() returns unit
+    return PlayerHelper.get_unit_by_player(this)
+
+/** the only way to init!*/
+public function player.init_self(unit u, career caree)
+    PlayerUnit obj
+    switch caree
+        case ice_mage
+            obj = new IceMage(this, u)
+        case fire_mage
+            obj = new FireMage(this, u)
+        case priest
+            obj = new Priest(this, u)
+        case warlock
+            obj = new Warlock(this, u)
+        case arcane_mage
+            obj = new ArcaneMage(this, u)
+        default
+            obj = null
+
+    if obj != null
+        if not PlayerUnitHelper.register(u, obj)
+            Log.error("bind unit to player failed {0}".format(u.getName()))
+
+public function player.destr_self()
+    let u = this.get_unit()
+    if u == null
+        Log.warn("player destr but has not init")
+        return
+    if not PlayerUnitHelper.unregister(u)
+        Log.error("bad unit & player bind")
+    RemoveUnit(u)
+
+public class PlayerHelper
+    static Table player_to_unit_map = new Table
+    static function get_unit_by_player(player pl) returns unit
+        if player_to_unit_map.hasHandle(pl.getId())
+            return player_to_unit_map.loadUnit(pl.getId())
+        else
+            return null
+
+    static function register_controlling_unit(player pl, unit u) returns boolean
+        if player_to_unit_map.hasHandle(pl.getId())
+            return false
+        
+        player_to_unit_map.saveUnit(pl.getId(), u)
+        return true
+
+    static function unregister_controlling_unit(player pl, unit u) returns boolean
+        if not player_to_unit_map.hasHandle(pl.getId()) and player_to_unit_map.loadUnit(pl.getId()) != u
+            return false
+        
+        player_to_unit_map.removeHandle(pl.getId())
+        return true
+    private construct()
+
+init
+    for i = 0 to PLAYER_NUM - 1
+        playernames[i] = players[i].getName()

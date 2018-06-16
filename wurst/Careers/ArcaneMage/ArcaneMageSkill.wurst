@@ -1,0 +1,23 @@
+package ArcaneMageSkill
+
+import public Buffs
+import public StatisticsHelper
+
+import public initlater ArcaneCounterSpell
+import public initlater ArcaneBlink
+import public initlater ArcaneMissile
+import public initlater ArcaneBarrage
+import public initlater ArcaneEmpowerment
+import public initlater ArcaneFume
+
+import BaseSkills
+
+public class ArcaneMageSkill extends IBaseSkills
+    construct(unit caster)
+        super(caster)
+
+    override function listen()
+
+    override function on_buff_removed(unit _u)
+
+    override function clear()

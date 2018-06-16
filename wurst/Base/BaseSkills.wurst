@@ -1,0 +1,20 @@
+package BaseSkills
+
+public abstract class IBaseSkills
+    protected unit owner_
+    protected trigger trigger_
+    construct(unit u)
+        this.owner_ = u
+        this.trigger_ = CreateTrigger()
+    ondestroy
+        DisableTrigger(this.trigger_)
+        DestroyTrigger(this.trigger_)
+
+    abstract function listen()
+
+    abstract function on_buff_removed(unit _u)
+
+    abstract function clear()
+
+    function get_owner() returns unit
+        return owner_

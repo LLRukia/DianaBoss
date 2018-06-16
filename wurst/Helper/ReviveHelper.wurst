@@ -1,0 +1,84 @@
+package ReviveHelper
+
+import Assert
+import HashMap
+import IPlayerUnit
+import EditorHelper
+import IceMage
+import FireMage
+import Warlock
+import Priest
+import ArcaneMage
+
+public class ReviveHelper
+    static var map_death_unit = new IterableMap<unit, unit>
+    static var unit_dead_body_map = new HashMap<career, int>
+
+    static function create_death_unit(unit dead_unit)
+        let nobj = PlayerUnitHelper.get_instance(dead_unit)
+        if nobj == -1
+            Log.error("create_death_unit but dead_unit is not a playerunit {0}".format(dead_unit.getName()))
+            return
+        let obj = nobj castTo IPlayerUnit
+        if obj == null
+            Log.error("bad unit & obj bind {0}".format(dead_unit.getName()))
+            return
+        if not unit_dead_body_map.has(obj.get_career())
+            Log.error("cannot find dead_unit dead body id {0}".format(dead_unit.getName()))
+            return
+        let id = unit_dead_body_map.get(obj.get_career())
+        let u = createUnit(dead_unit.getOwner(), id, dead_unit.getPos(), dead_unit.getFacing().asAngleDegrees())
+            ..setAnimation("death")
+        map_death_unit.put(u, dead_unit)
+
+    static function can_revive(vec2 pos) returns unit
+        var min = 9999.
+        unit u = null
+        for i in map_death_unit
+            let dis = (i.getPos() - pos).lengthSq()
+            if dis <= 50*50
+                if min > dis
+                    min = dis
+                    u = i
+        return u
+
+    static function can_revive(vec2 pos, unit u) returns unit
+        for i in map_death_unit
+            if map_death_unit.get(i) == u
+                if (u.getPos() - pos).lengthSq() <= 50*50
+                    return i
+        return null
+
+    static function revive(unit dead_body, real hp_percent)
+        if not assert(map_death_unit.has(dead_body), "revive bad arg: dead_body {0}".format(dead_body.getName()))
+            return
+        let u = map_death_unit.get(dead_body)
+        u..revive(dead_body.getPos(), false)
+            ..setXY(dead_body.getPos())
+            ..setHP(u.getMaxHP() * hp_percent)
+
+        map_death_unit.remove(dead_body)
+        RemoveUnit(dead_body)
+
+    static function is_dead_body_can_revive(unit dead_body) returns bool
+        return map_death_unit.has(dead_body)
+
+@compiletime
+function create_dead_units()
+    if compiletime
+        EditorHelper.create_effect_faker_unit('ddim', 0.9, IceMage.model_file, color(255, 255, 255))
+        EditorHelper.create_effect_faker_unit('ddpr', 0.9, Priest.model_file, color(255, 255, 255))
+        EditorHelper.create_effect_faker_unit('ddwl', 0.9, Warlock.model_file, color(255, 255, 255))
+        EditorHelper.create_effect_faker_unit('ddam', 0.9, ArcaneMage.model_file, color(255, 255, 255))
+        EditorHelper.create_effect_faker_unit('ddfm', 0.9, FireMage.model_file, color(255, 255, 255))
+        EditorHelper.create_effect_faker_unit('ddwr', 0.9, "", color(255, 255, 255))
+    else
+        ReviveHelper.unit_dead_body_map
+            ..put(career.ice_mage, 'ddim')
+            ..put(career.priest, 'ddpr')
+            ..put(career.warlock, 'ddwl')
+            ..put(career.arcane_mage, 'ddam')
+            ..put(career.fire_mage, 'ddfm')
+
+init
+    create_dead_units()

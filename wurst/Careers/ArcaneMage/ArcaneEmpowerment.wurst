@@ -1,0 +1,120 @@
+package ArcaneEmpowerment
+
+import ArcaneMage
+import TriggerHelper
+import EditorHelper
+import SkillHelper
+import GlobalDefines
+import TimerUtils
+import SoundHelper
+
+public class ArcaneEmpowerment extends ArcaneMageSkill
+    static let self_id = 'am0r'
+    static let buff_id = 'am1r'
+    static let help_id = 'am2r'
+    static let self_name = "ArcaneEmpowerment"
+    static let effect_file = "scrollpink.mdx"
+    static let icon_file = "replaceabletextures\\commandbuttons\\amr.blp"
+    static let num_inc = 2
+    static let last_time = 8.
+    static let mana_cost = 55
+    static let cool_down = 18.
+    static let desc = Color_Define.COLOR_NORMAL + "→奥术充能->|n" +
+        "↑使得你每次释放奥术飞弹时会额外释放{0}枚|n".format(num_inc.toString()) +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒。|n".format(ArcaneEmpowerment.last_time.toString(1)) +
+        Color_Define.COLOR_WARNING + "★额外的奥术飞弹可触发被动效果|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(ArcaneEmpowerment.cool_down.toString(1))
+
+    private timer timer_
+    construct(unit u)
+        super(u)
+
+    ondestroy
+        
+
+    override function clear()
+        if timer_ != null
+            timer_.release()
+            timer_ = null
+        if owner_.hasAbility(buff_id)
+            owner_.remove_buff(buff_id)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneEmpowerment.self_id))
+            ..addAction(function ArcaneEmpowerment.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        var self = GetTriggeringTrigger().getData() castTo ArcaneEmpowerment
+        let u = createUnit(self.owner_.getOwner(), FAKE_CASTER, self.owner_.getPos(), angle(0))
+
+        // add native buff
+        u..addAbility(ArcaneEmpowerment.help_id)
+          ..issueTargetOrder("bloodlust", self.owner_)
+          ..setTimedLife(1.)
+
+        // display
+        SoundPlayer.scroll(self.owner_.getPos3Zero())
+        flashEffect(effect_file, self.owner_.getPos())
+
+        // add craft buff
+        self.owner_.add_buff(buff_id, BuffClearType.additions, BuffType.buffs, self)
+        self.timer_ = getTimer()..setData(self castTo int)..start(last_time, function on_buff_expired)
+
+    override function on_buff_removed(unit u)
+        if timer_ != null
+            timer_.release()
+            timer_ = null
+        
+    static function on_buff_expired()
+        var self = GetExpiredTimer().getData() castTo ArcaneEmpowerment
+        if self.owner_.has_buff(buff_id)
+            self.owner_.remove_buff(buff_id)
+        if self.timer_ != null
+            self.timer_.release()
+            self.timer_ = null
+
+    
+@compiletime
+function create_power_infusion()
+    EditorHelper.create_channel_template(ArcaneEmpowerment.self_id, emSkillKey.R)
+        ..setHotkeyNormal("R")
+        ..setManaCost(1, ArcaneEmpowerment.mana_cost)
+        ..setCooldown(1, ArcaneEmpowerment.cool_down)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(ArcaneEmpowerment.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + ArcaneEmpowerment.self_name + Color_Define.COLOR_HOT_KEY + "(R)")
+        ..setTooltipNormalExtended(1, ArcaneEmpowerment.desc)
+        ..setIconNormal(ArcaneEmpowerment.icon_file)
+
+@compiletime
+function create_power_infusion_buff()
+    let ed = new BuffDefinition(ArcaneEmpowerment.buff_id, 'Bhea')
+    ed..setArtTarget(1, "amr.mdx")
+        ..setTargetAttachments(1, 1)
+        ..setTargetAttachmentPoint0(1, "chest")
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Arcane Empowerment")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位充满了奥术能量。")
+        ..setIconNormal(1, ArcaneEmpowerment.icon_file)
+    destroy ed
+
+@compiletime
+function create_power_infusion_buff_adder()
+    let ed = new AbilityDefinitionBloodlust(ArcaneEmpowerment.help_id)
+    ed..setScalingFactor(1, 0.)
+        ..setAttackSpeedIncrease(1, 0.)
+        ..setMovementSpeedIncrease(1, 0.)
+        ..setDurationHero(1, ArcaneEmpowerment.last_time)
+        ..setDurationNormal(1, ArcaneEmpowerment.last_time)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setBuffs(1, ArcaneEmpowerment.buff_id.toRawCode())
+        ..setName("ArcaneEmpowermentFaker")
+    destroy ed

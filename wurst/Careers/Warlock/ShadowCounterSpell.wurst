@@ -1,0 +1,48 @@
+package ShadowCounterSpell
+
+import Warlock
+import SkillHelper
+import TriggerHelper
+import EditorHelper
+import GlobalDefines
+
+public class ShadowCounterSpell extends WarlockSkill
+    static let self_id = 'wl0f'
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ShadowCounterSpell.self_id))
+            ..addAction(function ShadowCounterSpell.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        unit u = (GetTriggeringTrigger().getData() castTo ShadowCounterSpell).owner_
+        unit uT = GetSpellTargetUnit()
+        if SkillHelper.counter_spell(u, uT)
+            u.setMana(u.getMana() + 90)
+            uT.addEffect("purpleblink.mdx", "chest").destr()
+
+@compiletime
+function create_shadow_counter_spell()
+    var editor = EditorHelper.create_channel_template(ShadowCounterSpell.self_id, emSkillKey.F)
+    editor..setCastRange(1, 700)
+        ..setManaCost(1, 40)
+        ..setCooldown(1, 35)
+        ..setButtonPositionNormalX(2)
+        ..setButtonPositionNormalY(1)
+        ..setHotkeyNormal("F")
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ENEMY+",invulnerable,vulnerable")
+        ..setName("ShadowCounterSpell")
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Counter Spell" +
+            Color_Define.COLOR_HOT_KEY + "(F)")
+        ..setTooltipNormalExtended(1,
+            Color_Define.COLOR_NORMAL + "→反制Boss的技能（粉色字体）|n→反制成功后，为你恢复90点魔法值。|n" +
+            Color_Define. COLOR_CAST_RANGE + "→施法距离：700|n" +
+            Color_Define.COLOR_COOL_DOWN + "→CD:35s")
+        ..setIconNormal("replaceabletextures\\commandbuttons\\counterspell.blp")
+
+    destroy editor

@@ -1,0 +1,50 @@
+package ArcaneBlink
+
+import ArcaneMage
+import SkillHelper
+import TriggerHelper
+import EditorHelper
+import GlobalDefines
+
+public class ArcaneBlink extends ArcaneMageSkill
+    static let self_id = 'am0e'
+    static let self_name = "ArcaneBlink"
+    static let max_dis = 400
+    static let cool_down = 18.
+    static let mana_cost = 20
+    static let desc = Color_Define.COLOR_NORMAL + "→向前闪现|n→遇到障碍物会停下来。|n" +
+        Color_Define.COLOR_CAST_RANGE + "→最大距离：{0}|n".format(max_dis.toString()) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneBlink.self_id))
+            ..addAction(function ArcaneBlink.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        let owner = (GetTriggeringTrigger().getData() castTo ArcaneBlink).owner_
+        let target_pos = SkillHelper.blink_forward(owner, owner.getFacing().asAngleDegrees(), max_dis)
+
+        flashEffect("blink.mdx", owner.getPos())
+        flashEffect("blink.mdx", target_pos)
+        owner.setXY(target_pos)
+
+@compiletime
+function create_shadow_counter_spell()
+    let editor = EditorHelper.create_channel_template(ArcaneBlink.self_id, emSkillKey.E)
+    editor..setManaCost(1, ArcaneBlink.mana_cost)
+        ..setCooldown(1, ArcaneBlink.cool_down)
+        ..setButtonPositionNormalX(2)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("E")
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(ArcaneBlink.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Arcane Blink" + Color_Define.COLOR_HOT_KEY + "(E)")
+        ..setTooltipNormalExtended(1, ArcaneBlink.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\blink.blp")
+
+    destroy editor

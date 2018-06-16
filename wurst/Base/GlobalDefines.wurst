@@ -1,0 +1,74 @@
+package GlobalDefines
+import NoWurst
+import Vectors
+import Printing
+import Annotations
+
+public let _DEBUG = true
+public enum career
+    ice_mage
+    fire_mage
+    priest
+    warlock
+    arcane_mage
+
+public let CAREER_COLORS = [Color_Define.COLOR_ICEMAGE, Color_Define.COLOR_FIREMAGE,
+                            Color_Define.COLOR_PRIEST, Color_Define.COLOR_WARLOCK,
+                            Color_Define.COLOR_ARCANEMAGE]
+
+public let BORN_RECT = gg_rct_BORN
+public let PICK_RECT = gg_rct_PICK
+
+public let PLAYER_NUM = 8
+
+public let TYPE_ALLOWED_ENEMY               = "alive,enemies,ground,air"
+public let TYPE_ALLOWED_ALLY                = "alive,ground,air,friend,self,allies"
+public let TYPE_ALLOWED_ALLY_HERO           = "alive,ground,air,friend,self,allies,hero"
+public let TYPE_ALLOWED_ALLY_WITHOUT_SELF   = "alive,ground,air,friend,allies"
+public let TYPE_ALLOWED_ALL                 = "air,ground,alive,invulnerable,vulnerable,allies,friend,enemies,neutral,self"
+/** 
+这个值是因为范围技能的半径和选取单位范围的半径有误差（单位本体大小等原因）
+本图选取40作为修正值，请在技能定义里减掉修正，同时在选取单位范围的时候加上修正。
+*/
+public let AREA_DMG_CORRECTION = 40.
+public let POS_CORRECTION = vec2(16, 16)
+
+public let ICE_MAGE     = 'H0IM'
+public let PRIEST       = 'H0PR'
+public let WARLOCK      = 'H0WL'
+public let ARCANE_MAGE  = 'H0AM'
+public let FIRE_MAGE    = 'H0FM'
+
+public let PICK_UNITS = [
+    ICE_MAGE,
+    FIRE_MAGE,
+    PRIEST,
+    WARLOCK,
+    ARCANE_MAGE
+]
+public let PICK_CAREERS = [
+    career.ice_mage,
+    career.fire_mage,
+    career.priest,
+    career.warlock,
+    career.arcane_mage
+]
+public let CAREERS_NUM = 5
+
+public class Color_Define
+    static let COLOR_ICEMAGE       = "|cffCECEFF"
+    static let COLOR_PRIEST        = "|cffFFFF93"
+    static let COLOR_WARLOCK       = "|cff9F35FF"
+    static let COLOR_ARCANEMAGE    = "|cffFF95CA"
+    static let COLOR_FIREMAGE      = "|cffFF2D2D"
+
+    static let COLOR_MANA_DECREASE = "|cffCECEFF"
+    static let COLOR_COOL_DOWN     = "|cffFFFF37"
+    static let COLOR_HOT_KEY       = "|cffFFCC00"
+    static let COLOR_NORMAL        = "|cffFFFFFF"
+    static let COLOR_LAST_TIME     = "|cffccffcc"
+    static let COLOR_CAST_RANGE    = "|cffDAA520"
+    static let COLOR_WARNING       = "|cffFF5151"
+
+@configurable public var CUR_MODE = 0
+@configurable public var DEBUG_LEVEL = Loglevel.DEBUG

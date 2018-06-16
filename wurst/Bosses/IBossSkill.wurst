@@ -1,0 +1,24 @@
+package IBossSkill
+
+import public initlater IBoss
+
+public abstract class IBossSkill
+    real priority = 0.
+    protected IBoss m_owner
+    construct(IBoss owner)
+        m_owner = owner
+
+    abstract function cast()
+
+    abstract function detect()
+
+    abstract function stop_detect()
+
+    abstract function stop_cast()
+
+    abstract function get_break() returns real
+
+    abstract function judge() returns bool
+
+    function endcast()
+        m_owner.continue(get_break())

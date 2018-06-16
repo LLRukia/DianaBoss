@@ -1,0 +1,79 @@
+package ArcaneMage
+
+import public PlayerUnitHelper
+import public ArcaneMageSkill
+import EditorHelper
+import PlayerUnit
+
+public class ArcaneMage extends PlayerUnit
+    static let model_file = "units\\human\\Jaina\\Jaina"
+
+    construct(player pl, unit u)
+        super(pl, u)
+        career_type_ = arcane_mage
+        init_self()
+        listen_all()
+
+    override function init_self() 
+        skill_list_.add(new ArcaneCounterSpell(uself_))
+        skill_list_.add(new ArcaneBlink(uself_))
+        skill_list_.add(new ArcaneBarrage(uself_))
+        skill_list_.add(new ArcaneEmpowerment(uself_))
+        skill_list_.add(new ArcaneMissile(uself_))
+        skill_list_.add(new ArcaneFume(uself_))
+        // m_ls_skill.add(new IceShield(m_self_unit))
+
+    override function refresh()
+        super.refresh()
+        uself_..removeAbility(ArcaneCounterSpell.self_id)..addAbility(ArcaneCounterSpell.self_id)
+            ..removeAbility(ArcaneBlink.self_id)..addAbility(ArcaneBlink.self_id)
+            ..removeAbility(ArcaneEmpowerment.self_id)..addAbility(ArcaneEmpowerment.self_id)
+             ..removeAbility(ArcaneMissile.editor_id)..addAbility(ArcaneMissile.editor_id)
+        //     ..removeAbility(IceStomp.self_id)..addAbility(IceStomp.self_id)
+
+@compiletime
+function create_arcane_mage()
+    let editor = EditorHelper.create_template_hero(ARCANE_MAGE)
+    let skill_code_list = ArcaneCounterSpell.self_id.toRawCode() + "," + 
+        ArcaneMissile.editor_id.toRawCode() + "," +
+        ArcaneEmpowerment.self_id.toRawCode() + "," +
+        ArcaneBarrage.self_id.toRawCode() + "," +
+        ArcaneBlink.self_id.toRawCode() + "," +
+        ArcaneFume.self_id.toRawCode() +
+        ",amau,AInv,bAnA"
+
+    editor..setNormalAbilities(skill_code_list)
+        ..setUnitSoundSet("Jaina")
+        ..setProperNames(Color_Define.COLOR_ARCANEMAGE + "奥法")
+        ..setName("奥法")
+        ..setModelFile(ArcaneMage.model_file)
+        ..setArtSpecial(ArcaneMage.model_file)
+        ..setAttack1ProjectileArt("Abilities\\Weapons\\AncestralGuardianMissile\\AncestralGuardianMissile.mdl")
+        ..setAttack1AttackType(AttackType.Magic)
+        ..setPrimaryAttribute("INT")
+    destroy editor
+
+
+@compiletime
+function create_am_au()
+    let editor = EditorHelper.create_aura('amau')
+    editor..setArtTarget("am.mdx")
+        ..setName("am")
+        ..setBuffs(1, "amid")
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(-11)
+    destroy editor
+
+@compiletime
+function create_am_id()
+    let editor = new BuffDefinition('amid', 'Bdet')
+    editor..setName(1, "ArcaneMage")
+        ..setTooltipNormal(1, Color_Define.COLOR_NORMAL + "Arcane Mage")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_ARCANEMAGE + "Nice girl!")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\AM.blp")
+    destroy editor
+
+// @compiletime
+// function create_im_mgbk()
+//     var ed = EditorHelper.create_magic_book('imbk', "imau")
+//     destroy ed

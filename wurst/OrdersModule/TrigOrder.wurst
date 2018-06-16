@@ -1,0 +1,72 @@
+package TrigOrder
+import PlayerHelper
+import PlayerUnitHelper
+import PlayerUnit
+import SkillHelper
+import EditorHelper
+
+
+function clear2()
+    print("clear stable")
+    Player(0).get_unit().remove_buff(BuffClearType.stable, BuffType.buffs)
+
+function clear1()
+    print("clear addition")
+    Player(0).get_unit().remove_buff(BuffClearType.additions, BuffType.buffs)
+
+function ms()
+    printTimedToPlayer(GetTriggerPlayer().get_unit().getMoveSpeed().toString(1), 4, GetTriggerPlayer()) 
+
+function cam()
+    GetTriggerPlayer()..setCameraField(CAMERA_FIELD_FIELD_OF_VIEW, 95., 0)
+        ..setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 2500., 0)
+
+function refresh()
+    (PlayerUnitHelper.get_instance(GetTriggerPlayer().get_unit()) castTo PlayerUnit).refresh()
+
+function confuse()
+    let trigger_unit = GetTriggerPlayer().get_unit()
+    if trigger_unit != null
+        let faker = createUnit(GetTriggerPlayer(), FAKE_CASTER, vec2(0,0), angle(0))
+        faker..addAbility('fkcf')..issueTargetOrder("cripple", trigger_unit)..setTimedLife(0.5)
+
+init
+    let spd = CreateTrigger()
+    let cam = CreateTrigger()
+    let clr1 = CreateTrigger()
+    let clr2 = CreateTrigger()
+    let refresh = CreateTrigger()
+    let confuse = CreateTrigger()
+
+    for i = 0 to PLAYER_NUM-1
+        spd.registerPlayerChatEvent(Player(i), "ms", true)
+        cam.registerPlayerChatEvent(Player(i), "cam", true)
+        confuse.registerPlayerChatEvent(Player(i), "?", true)
+        confuse.registerPlayerChatEvent(Player(i), "？", true)
+        if _DEBUG
+            clr1.registerPlayerChatEvent(Player(i), "-clear2", true)
+            clr2.registerPlayerChatEvent(Player(i), "-clear1", true)
+            refresh.registerPlayerChatEvent(Player(i), "-refresh", true)
+    spd..addAction(function ms)
+    cam..addAction(function cam)
+    confuse.addAction(function confuse)
+    if _DEBUG
+        clr1..addAction(function clear2)
+        clr2..addAction(function clear1)
+        refresh..addAction(function refresh)
+
+@compiletime
+function create_confuse_buff()
+    let ed = new BuffDefinition('cfse', 'Bdet')
+    ed..setName(1, "?")
+        ..setTooltipNormal(1, Color_Define.COLOR_HOT_KEY + "???")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "?????。")
+        ..setArtTarget(1, "Confused_State_Head.mdx")
+        ..setTargetAttachmentPoint0(1, "overhead")
+        ..setIconNormal(1, "ReplaceableTextures\\CommandButtons\\BTNSelectHeroOff.blp")
+    destroy ed
+
+@compiletime
+function create_confuse_add()
+    let ed = EditorHelper.create_cripple_template('fkcf', 2., 'cfse')
+    destroy ed

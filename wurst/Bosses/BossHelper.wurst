@@ -1,0 +1,87 @@
+package BossHelper
+
+import HashMap
+import IBoss
+import WarlockKing
+import ClosureTimers
+import initlater Boards
+import initlater ProcessControl
+
+public function unit.isBoss() returns boolean
+    return BossHelper.cur_boss == this
+    
+
+BossBoard boss_board = null
+
+public enum SkillTextColor
+    normal
+    counter
+    charge
+
+let skill_color = [colorA(157, 157, 157, 255), colorA(255, 0, 128, 255), colorA(8, 8, 8, 255)]
+
+public class BossHelper
+    static var map_boss = new HashMap<int, IBoss>
+    static private bool can_counter = false
+    static unit cur_boss = null
+    static int cur_boss_index = 0
+
+    static function counter(unit u) returns boolean
+        if u != cur_boss
+            return false
+        if can_counter
+            if not map_boss.has(cur_boss_index)
+                Log.warn("counter error boss index " + cur_boss_index.toString())
+                return false
+            map_boss.get(cur_boss_index).countered()
+            return true
+
+        return false
+
+
+    static function register_counter(bool bcounter)
+        can_counter = bcounter
+
+    static function init_self()
+        boss_board = new BossBoard
+        map_boss..put(1, new WarlockKing(WarlockKing.self_id, WarlockKing.born_pos, 1, WarlockKing.play_rect, WarlockKing.enter_pos))
+
+    static function prepare()
+        cur_boss_index ++
+        CinematicFilterGenericBJ(1.5, BLEND_MODE_BLEND, "ReplaceableTextures\\CameraMasks\\Black_mask.blp", 100, 100, 100, 100, 0, 0, 0, 0)
+        
+        var obj = map_boss.get(cur_boss_index)
+        doAfter(1.5) ->
+            obj.prepare()
+            boss_board.show(true)
+        doAfter(2.) ->
+            DisplayCineFilter(false)
+            obj.start()
+            
+    static function change_state(BossState st)
+        boss_board.change_state(st)
+
+    static function _end()
+        CinematicFilterGenericBJ(1.5, BLEND_MODE_BLEND, "ReplaceableTextures\\CameraMasks\\Black_mask.blp", 100, 100, 100, 100, 0, 0, 0, 0)
+
+        var obj = map_boss.get(cur_boss_index)
+        doAfter(1.5) ->
+            obj._end()
+            boss_board.show(false)
+        doAfter(2.) ->
+            DisplayCineFilter(false)
+            game_rest()
+
+    static function create_skill_text(vec2 pos, string tx, SkillTextColor cl)
+        real speed = 64 * 0.071 / 128
+        real angle = 90
+
+        real offset = (tx.length() / 2) * 16.7
+        createTTEx(pos.withZ(0) - vec3(130 + offset, 0, 0), tx, 8.8, skill_color[cl castTo int])
+            ..setPermanent(false)
+            ..setFadepoint(2.)
+            ..setLifespan(3.)
+            ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
+
+init
+    BossHelper.init_self()

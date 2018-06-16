@@ -1,0 +1,226 @@
+package SkillHelper
+
+import MathHelper
+import Buffs
+import TimerUtils
+import EditorHelper
+import BossHelper
+import SoundHelper
+
+public let FAKE_CASTER = 'ctfk'
+
+class Rush
+    static let default_effect = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+    static let unit_id = 'rush'
+    construct(unit u, angle ang, real speed, real dis, bool pause, string effect_path)
+        this.u = u
+        this.ang = ang
+        this.speed = speed
+        this.dis = dis
+        this.pause = pause
+        this.effect_path = effect_path
+        rush()
+
+    private function rush()
+        if dis<speed or u == null
+            return
+        if pause
+            u.pause()
+        u.addAbility('Aeth')
+        CreateTimer()..setData(this castTo int)
+            ..startPeriodic(0.03, function Rush.rush_timer)
+    
+    private static function rush_timer()
+        timer t = GetExpiredTimer()
+        var data = t.getData() castTo Rush
+        vec2 pos = data.u.getPos()
+        pos = MathHelper.forward(pos, data.ang, data.speed)
+        unit uExplorer = createUnit(data.u.getOwner(), Rush.unit_id, pos, data.ang)
+        uExplorer.setTimedLife(0.3)
+
+        if not IssueBuildOrderById(uExplorer, Rush.unit_id, pos.x, pos.y) or data.moved_dis >= data.dis
+            if data.pause
+                data.u.unpause()
+            data.u.removeAbility('Aeth')
+            destroy data
+            t..pause()..destr()
+            return
+        data.u.setPos(pos)
+        flashEffect(data.effect_path, pos)
+        data.moved_dis += data.speed
+
+    unit u
+    angle ang
+    real speed
+    real dis
+    bool pause
+    real moved_dis = 0
+    string effect_path = Rush.default_effect
+
+class FanShaped
+    
+public class Invulnerability
+    trigger trigger_
+    unit owner_ = null
+    timer timer_
+    construct(unit u)
+        this.owner_ = u
+        trigger_ = CreateTrigger()..registerUnitEvent(u, EVENT_UNIT_DAMAGED)
+            ..addAction(()->EXSetEventDamage(0))
+        timer_ = getTimer()
+        timer_..setData(this castTo int)
+        ..startPeriodic(0.05, function des_buf)
+
+    static function des_buf()
+        let obj = GetExpiredTimer().getData() castTo Invulnerability
+        obj.owner_.remove_buff(BuffClearType.additions, BuffType.debuffs)
+        obj.owner_.remove_buff(BuffClearType.additions, BuffType.buffs)
+
+    ondestroy
+        trigger_..disable()..destr()
+        timer_.release()
+
+
+public class AutoTrace
+    static let init_speed = 55.
+    static let init_speed_deca = 1.25
+    static let init_trace_speed = 0.
+    static let trace_speed_inc = 2.5
+    static let max_speed = 55
+    static let tick_interval = 0.05
+    unit target_
+    unit caster_
+    angle init_speed_ang_
+    SkillHelperCb cb_
+    int cb_arg_
+    unit faker_
+    timer ticker_
+    real cur_ispd = init_speed
+    real cur_tspd = init_trace_speed
+    real ini_dec = init_speed_deca
+    real tra_inc = trace_speed_inc
+
+    construct(int effect_id, unit ut, unit uc, angle ang, SkillHelperCb cb, int arg)
+        this.target_ = ut
+        this.caster_ = uc
+        this.init_speed_ang_ = ang
+        this.cb_ = cb
+        this.cb_arg_ = arg
+        this.faker_ = createUnit(uc.getOwner(), effect_id, uc.getPos()+vec2(16,16), init_speed_ang_)
+        ticker_ = getTimer()
+        ticker_..setData(this castTo int)
+            ..startPeriodic(tick_interval, function tm_cb)
+
+    function set_speed(real init_speed, real its, real isd, real tsi)
+        cur_ispd = init_speed
+        cur_tspd = its
+        ini_dec = isd
+        tra_inc = tsi
+
+    ondestroy
+        ticker_.release()
+        // use kill to play death effect
+        KillUnit(faker_)
+
+    private static function tm_cb()
+        var obj = GetExpiredTimer().getData() castTo AutoTrace
+        obj.main()
+
+    private function main()
+        if not target_.isAlive()
+            target_ = caster_
+            cur_tspd = 0
+            if not target_.isAlive()
+                destroy this
+                return
+                
+        vec2 curpos = faker_.getPos()
+        angle to_target = curpos.angleTo(target_.getPos()).asAngleDegrees()
+        vec2 sucpos = MathHelper.forward(curpos, to_target, cur_tspd)
+        if cur_tspd < max_speed
+            cur_tspd += trace_speed_inc
+        if cur_ispd > 0
+            sucpos = MathHelper.forward(sucpos, init_speed_ang_, cur_ispd)
+            cur_ispd -= init_speed_deca
+        let face = curpos.angleTo(sucpos)
+        faker_..setFacing(face)..setXY(sucpos)
+        if (sucpos - target_.getPos()).lengthSq() <= 56*56.
+            if target_ != caster_
+                cb_.cb(cb_arg_)
+            destroy this
+
+public interface SkillHelperCb
+    function cb(int _obj)
+
+public class SkillHelper
+    static function rush(unit u, angle ang, real dis, real speed, bool pauseUnit, string effect_path)
+        new Rush(u, ang, speed, dis, pauseUnit, effect_path)
+
+    static function flash()
+        
+    static function protect(unit u) returns Invulnerability
+        return new Invulnerability(u)
+
+    static function counter_spell(unit caster, unit target) returns bool
+        if BossHelper.counter(target)
+            let speed = 64 * 0.071 / 128
+            let angle = 90.
+            createTTEx(caster.getPos3Zero() - vec3(245, 0, 0), "★反制成功★", 7, caster.getOwner().getColor().toColor().withAlpha(255))
+                ..setPermanent(false)
+                ..setFadepoint(2.)
+                ..setLifespan(3.)
+                ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
+            SoundPlayer.counter_spell()
+            target.addEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", "chest").destr()
+            return true
+        return false
+
+    static function auto_trace_missile(int effect_id, unit target_unit, unit caster, angle ang, SkillHelperCb cb, int arg)
+        new AutoTrace(effect_id, target_unit, caster, ang, cb, arg)
+
+    static function auto_trace_missile_modify_speed(int effect_id, unit target_unit, unit caster, angle ang, SkillHelperCb cb,
+        int arg, real init_speed, real init_speed_deca, real init_trace_speed, real trace_speed_inc)
+        new AutoTrace(effect_id, target_unit, caster, ang, cb, arg).set_speed(init_speed, init_speed_deca, init_trace_speed, trace_speed_inc)
+
+    static function blink_forward(unit caster, angle ang, int dis) returns vec2
+        vec2 pos = caster.getPos()
+        caster.addAbility('Aeth')
+        let dis_step = 50
+        for i = 1 to dis div dis_step
+            let new_pos = MathHelper.forward(pos, ang, dis_step.toReal())
+            let explorer = createUnit(caster.getOwner(), Rush.unit_id, new_pos, ang)..setTimedLife(0.3)
+            if not IssueBuildOrderById(explorer, Rush.unit_id, new_pos.x, new_pos.y)
+                break
+            else
+                pos = new_pos
+        caster.removeAbility('Aeth')
+        return pos
+
+    private construct()
+
+    
+@compiletime
+function create_rush_explorer()
+    var editor = new UnitDefinition(Rush.unit_id, 'hpea')
+    editor..setNormalAbilities("Aeth,Aloc,Ahrp")
+        ..setStructuresBuilt(Rush.unit_id.toRawCode())
+        ..setCollisionSize(24.)
+        ..setName("RUSH")
+        ..setShadowImageUnit("")
+        ..setArtSpecial("")
+        ..setSpeedBase(0)
+        ..setAttacksEnabled(0)
+        ..setHitPointsMaximumBase(9999)
+        ..setFoodCost(0)
+        ..setUnitClassification("")
+        ..setGoldCost(0)
+        ..setLumberCost(0)
+        ..setSightRadiusDay(0)
+        ..setSightRadiusNight(0)
+        ..setModelFile(".mdl")
+    destroy editor
+
+@compiletime
+function create_ice_spirit_faker_caster()
+    var ed = EditorHelper.create_caster_faker_unit(FAKE_CASTER, 1)
+    destroy ed

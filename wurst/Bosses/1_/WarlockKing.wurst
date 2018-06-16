@@ -1,0 +1,227 @@
+package WarlockKing
+
+import Boss
+import ClosureTimers
+import TimerUtils
+import SoundUtils
+import DreamingSouls
+import initlater ManipulatingEnergy
+import test1
+import test2
+
+import LinkedList
+import MathHelper
+import SoundHelper
+
+public class WarlockKing extends Boss
+    static let self_id = 'bs10'
+    static let born_pos = vec2(4416.0, -64.0)
+    static let play_rect = gg_rct_BOSS1
+    static let sd_pre = new SoundDefinition(Sounds.kelThuzadWarcry1, false)
+    static let sd_charge_atk = new SoundDefinition(Sounds.kelThuzadYesAttack1, false)
+    static let self_name = "暴虐术士王"
+    static let enter_pos = born_pos - vec2(0, 700)
+
+    private LinkedList<unit> m_ls_sight = new LinkedList<unit>
+    private timer m_tm_charge_dmg
+    private real charge_ang
+
+    construct(int id, vec2 born, int index, rect rc, vec2 enter)
+        super(id, born, index, rc, enter)
+        
+
+    override function create_self()
+        super.create_self()
+        m_tr_charge..registerUnitStateEvent(m_self_unit, UNIT_STATE_MANA, GREATER_THAN, 799.5)
+            ..addAction(function cb_charged)
+            .setData(this castTo int)
+        m_q..add_skill(new DreamingSouls(this))
+            ..add_skill(new ManipulatingEnergy(this))
+            ..add_skill(new test1(this))
+            ..add_skill(new test2(this))
+        m_self_unit.setMana(750)
+
+    override function destroy_self()
+        m_tr_charge.disable()
+        m_q.clear()
+        super.destroy_self()
+        
+    static function cb_charged()
+        (GetTriggeringTrigger().getData() castTo WarlockKing).change_state(BossState.infinity)
+
+   
+    override function prepare()
+        super.prepare()
+
+    override function start()
+        m_self_unit.setAnimation("stand,channel")
+        sd_pre.play()
+
+        ClearTextMessages()
+        printTimed("暴虐术士王：为了火鸡！", 4.)
+        doAfter(2.) ->
+            super.start()
+            
+    override function ondeath()
+        ClearTextMessages()
+        printTimed("暴虐术士王：火鸡已死，Joker当立", 2)
+        doAfter(5.) ->
+            super.ondeath()
+            
+    override function onstart()
+        super.onstart()
+
+
+    override function _main()
+        super._main()
+        
+
+    override function state_charged()
+        super.state_charged()
+        BossHelper.create_skill_text(m_self_unit.getPos(), "黑暗笼罩", SkillTextColor.charge)
+        m_self_unit..setAnimation("victory").setFacing(270)
+
+        charge_ang = 270
+        unit uModify = createUnit(players[0], 'h000', MathHelper.coor_polar2abso(1750, charge_ang), angle(0))
+        var ls_L = new LinkedList<destructable>
+        var ls_R = new LinkedList<destructable>
+        ls_L.add(createDestructable('YTlb', MathHelper.coor_polar2abso(1750, charge_ang - 15), (charge_ang - 15).asAngleDegrees(), 10, 0))
+        ls_R.add(createDestructable('YTlb', MathHelper.coor_polar2abso(1750, charge_ang + 15), (charge_ang + 15).asAngleDegrees(), 10, 0))
+        m_tm_charge_dmg = getTimer()
+        m_tm_charge_dmg..setData(this castTo int)
+            .startPeriodic(0.5, function charge_dmg)
+
+
+        vec2 center = m_self_unit.getPos()
+        real r = 4150.
+        fogmodifier fm = null
+        doPeriodically(0.1) cb->
+            r -= 125
+            if fm != null
+                fm..stop().destr()
+            fm = CreateFogModifierRadius(players[0], FOG_OF_WAR_VISIBLE, center.x, center.y, r, true, false)..start()
+            if r <= 0
+                fm..stop().destr()
+                destroy cb
+                rotate(uModify, ls_L, ls_R)
+            
+    static function charge_dmg()
+        var obj = GetExpiredTimer().getData() castTo thistype
+        group g = CreateGroup()
+        g.enumUnitsInRange(obj.m_self_unit.getPos(), 5000)
+        real tmp = obj.charge_ang
+        for i in g
+
+            if i.isAlive() and IsUnitAlly(i, players[0])
+                real r = obj.m_self_unit.getPos().angleTo(i.getPos())
+                print(vec2(r,tmp).toString())
+                if not ((r - tmp >= -15 and r - tmp <= 15) or (r - tmp >= 345 or r - tmp <= -345))
+                    obj.m_self_unit.damageTarget(i, 250.)
+
+    function rotate(unit u, LinkedList<destructable> ls_L, LinkedList<destructable> ls_R)
+        doPeriodically(0.1) cb->
+            charge_ang += 3
+            m_self_unit.setFacing(charge_ang)
+            if charge_ang >= 360
+                charge_ang = (charge_ang.toInt() mod 360).toReal()
+
+            u.setXY(MathHelper.coor_polar2abso(1750, charge_ang)+m_self_unit.getPos())
+            for i in ls_L
+                i.remove()
+            ls_L.clear()
+            for i in ls_R
+                i.remove()
+            ls_R.clear()
+            ls_L.add(createDestructable('YTlb', MathHelper.coor_polar2abso(1750, charge_ang - 15.)+m_self_unit.getPos(), (charge_ang - 15.).asAngleDegrees(), 10, 0))
+            ls_R.add(createDestructable('YTlb', MathHelper.coor_polar2abso(1750, charge_ang + 15.)+m_self_unit.getPos(), (charge_ang + 15.).asAngleDegrees(), 10, 0))
+            
+
+            if charge_ang - 270 > -0.00001 and charge_ang - 270 < 0.00001
+                destroy cb
+                m_tm_charge_dmg.release()
+                sd_charge_atk.playOnPoint(m_self_unit.getPos3Zero())
+                m_self_unit.setAnimation("spell")
+                doAfter(0.5) ->
+                    final_rotate(u, ls_L, ls_R)
+
+    function final_rotate(unit u, LinkedList<destructable> ls_L, LinkedList<destructable> ls_R)
+        real rotate_ang = charge_ang - 15
+        u.setXY(MathHelper.coor_polar2abso(1750, charge_ang + 14))
+
+        group g = CreateGroup()
+        doPeriodically(0.05) cb ->
+            rotate_ang += 6
+            for i in ls_L
+                i.remove()
+            ls_L.clear()
+            real r = 50
+            SoundPlayer.scroll((MathHelper.coor_polar2abso(r, rotate_ang)+m_self_unit.getPos()).withZ(0))
+            while r <= 4000
+                vec2 pos = MathHelper.coor_polar2abso(r, rotate_ang)+m_self_unit.getPos()
+                ls_L.add(createDestructable('YTlb', pos, r.asAngleDegrees(), 1, 0))
+                flashEffect("scrollpurp.mdx", pos)
+                
+                g.clear()
+                g.enumUnitsInRange(pos, 50)
+                for i in g
+                    if i.isAlive() and not IsUnitAlly(i, m_onwer)
+                        m_self_unit.damageTarget(i, 10000)
+                r += 50
+            if rotate_ang >= charge_ang + 14
+                destroy cb
+                final_rotate2(u, ls_L, ls_R)
+                g.destr()
+
+
+    function final_rotate2(unit u, LinkedList<destructable> ls_L, LinkedList<destructable> ls_R)
+        real ra = charge_ang + 15
+        var ls_des = new LinkedList<unit>
+        group g = CreateGroup()
+        int t = 0
+        doPeriodically(0.05) cb ->
+            ra += 18
+            t++
+            if ra >= 360
+                ra = (ra.toInt() mod 360).toReal()
+            if t mod 5 == 0
+                ls_des.add(createUnit(players[0], 'h000', MathHelper.coor_polar2abso(1750, ra-1)+m_self_unit.getPos(), angle(0)))
+            for i in ls_L
+                i.remove()
+            ls_L.clear()
+            real r = 50
+            while r <= 4000
+                vec2 pos = MathHelper.coor_polar2abso(r, ra)+m_self_unit.getPos()
+                ls_L.add(createDestructable('YTlb', pos, r.asAngleDegrees(), 1, 0))
+                flashEffect("scrollpurp.mdx", pos)
+                
+                g.clear()
+                g.enumUnitsInRange(pos, 50)
+                for i in g
+                    if i.isAlive() and not IsUnitAlly(i, m_onwer)
+                        m_self_unit.damageTarget(i, 10000)
+                r += 50
+            if t >= 19
+                destroy cb
+                for i in ls_des
+                    i.remove()
+                ls_des.clear()
+                destroy ls_des
+                for i in ls_L
+                    i.remove()
+                ls_L.clear()
+                destroy ls_L
+                for i in ls_R
+                    i.remove()
+                ls_R.clear()
+                destroy ls_R
+                u.remove()
+
+                end_state_charged()
+
+    override function change_state(BossState st)
+        super.change_state(st)
+
+    override function get_name() returns string
+        return self_name
+
+    

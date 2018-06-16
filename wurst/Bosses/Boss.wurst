@@ -1,0 +1,183 @@
+package Boss
+
+import public IBoss
+import PlayerHelper
+import PlayerUnitHelper
+import PlayerUnit
+import Camera
+import ClosureTimers
+import public TriggerHelper
+import TimerUtils
+
+public class Boss extends IBoss
+    override function destroy_self()
+        m_tr_charge..disable().destr()
+        m_tr_death.destr()
+        destroy m_atk_ctrl
+        RemoveUnit(m_self_unit)
+        m_self_unit = null
+        destroy m_q
+        m_tm_mana.release()
+
+    override function create_self()
+        m_q = new MsgQueue
+        m_tr_charge = CreateTrigger()
+        m_tr_death = CreateTrigger()
+        m_tm_mana = getTimer()
+        m_tm_mana.setData(this castTo int)
+        m_atk_ctrl = new HatredTargetController(m_self_unit)
+        m_self_unit = createUnit(m_onwer, m_self_id, m_born, bj_UNIT_FACING.asAngleDegrees())
+        m_tr_death..registerUnitEvent(m_self_unit, EVENT_UNIT_DEATH)
+            ..addAction(function death_cb)
+            ..setData(this castTo int)
+
+        BossHelper.cur_boss = m_self_unit
+        m_self_unit.pause()
+
+    override function ondeath()
+        BossHelper._end()
+
+    static function death_cb()
+        (GetTriggeringTrigger().getData() castTo Boss).ondeath()
+
+
+    static function mana_recovery()
+        var obj = GetExpiredTimer().getData() castTo thistype
+        if not obj.m_bpause_mana
+            int level = 0
+            switch obj.m_cur_state
+                case ignore
+                    level = MANA_RECOVERY[CUR_MODE].r1
+                case calm
+                    level = MANA_RECOVERY[CUR_MODE].r2
+                case trouble
+                    level = MANA_RECOVERY[CUR_MODE].r3
+                case wrath
+                    level = MANA_RECOVERY[CUR_MODE].r4
+                case frenzy
+                    level = MANA_RECOVERY[CUR_MODE].r5
+                case infinity
+                    level = 0
+            level --
+            if level != -1
+                obj.m_self_unit.setMana(obj.m_self_unit.getMana() + MANA_RECOVERY_LEVEL[level])
+
+    override function _end()
+        destroy_self()
+        for i = 0 to PLAYER_NUM - 1
+            players[i]..setCameraBoundsToRect(BORN_RECT)
+                    ..panCameraToTimed(BORN_RECT.getCenter(), 0)
+            unit player_unit = Player(i).get_unit()
+            if player_unit != null
+                int no = PlayerUnitHelper.get_instance(player_unit)
+                if no != -1
+                    var obj = no castTo PlayerUnit
+                    obj.refresh()
+                    player_unit.setPos(BORN_RECT.getCenter())
+        
+
+    override function prepare()
+        create_self()
+        for i = 0 to PLAYER_NUM-1
+            Player(i)..setCameraBoundsToRect(m_rect)
+                ..panCameraToTimed(m_born, 0)
+            unit player_unit = Player(i).get_unit()
+            if player_unit != null
+                int no = PlayerUnitHelper.get_instance(player_unit)
+                if no != -1
+                    var obj = no castTo PlayerUnit
+                    obj.refresh()
+                    player_unit.setPos(m_enter)
+                player_unit.pause()
+
+    override function start()
+        for i = 0 to PLAYER_NUM-1
+            unit player_unit = Player(i).get_unit()
+            if player_unit != null
+                player_unit.unpause()
+        m_self_unit.unpause()
+        onstart()
+        doAfter(GetRandomReal(3.5, 4.5))->
+            _main()
+
+    construct(int id, vec2 born, int index, rect rc, vec2 enter)
+        super(id, born, index, rc, enter)
+    
+
+    override function onstart()
+        m_atk_ctrl.chaos()
+        m_q.run()
+        change_state(BossState.ignore)
+        m_tm_mana.startPeriodic(1, function mana_recovery)
+
+    override function _main()
+        if m_bcharging
+            return
+        IBossSkill obj = m_q.get_judge()
+        if obj != null
+            m_spelling_obj = obj
+            obj.cast()
+        else
+            doAfter(1.) ->
+                _main()
+
+    override function get_name() returns string
+        return ""
+    
+    override function change_state(BossState st)
+        if st != BossState.infinity
+            m_cur_state = st
+        BossHelper.change_state(st)
+        switch st
+            case ignore
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_MAGIC_ID, RESISTANCE_SET[CUR_MODE].r1)
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_PIERCE_ID, RESISTANCE_SET[CUR_MODE].r1)
+            case calm
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_MAGIC_ID, RESISTANCE_SET[CUR_MODE].r2)
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_PIERCE_ID, RESISTANCE_SET[CUR_MODE].r2)
+            case trouble
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_MAGIC_ID, RESISTANCE_SET[CUR_MODE].r3)
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_PIERCE_ID, RESISTANCE_SET[CUR_MODE].r3)
+            case wrath
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_MAGIC_ID, RESISTANCE_SET[CUR_MODE].r4)
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_PIERCE_ID, RESISTANCE_SET[CUR_MODE].r4)
+            case frenzy
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_MAGIC_ID, RESISTANCE_SET[CUR_MODE].r5)
+                m_self_unit.setAbilityLevel(BOSS_RESISTANCE_PIERCE_ID, RESISTANCE_SET[CUR_MODE].r5)
+            case infinity
+                if m_spelling_obj != null
+                    m_spelling_obj.stop_cast()
+                    m_spelling_obj = null
+                m_q.pause()
+                m_bcharging = true
+                set_can_spell(false)
+                if not m_self_unit.isPaused()
+                    m_self_unit.pause()
+                m_self_unit..setInvulnerable(true)
+                                        ..setAnimation("spell,channel")
+                effect ef = addEffect("BossCharging.mdx", m_self_unit.getPos())
+                doAfter(BOSS_CHARGING_TIME[CUR_MODE]) ->
+                    ef..setPos(vec2(0,0)).destr()
+                    state_charged()
+    
+    function state_charged()
+        skip
+
+    function end_state_charged()
+        m_self_unit..setInvulnerable(false)
+                    ..unpause()
+                    ..setMana(0.)
+        m_q.run()
+        set_can_spell(true)
+        change_state(m_cur_state)
+        continue(AFTER_CHARGE)
+
+    override function continue(real fbreak)
+        if m_spelling_obj != null or m_bcharging
+            m_spelling_obj = null
+            m_bcharging = false
+            real fRand = GetRandomReal(1. - CUR_MODE * 0.05, 1.8 - CUR_MODE * 0.1)
+            doAfter(fbreak * fRand) ->
+                _main()
+        else
+            print("boss continue error")

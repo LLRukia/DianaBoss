@@ -1,0 +1,16 @@
+package TriggerHelper
+import NoWurst
+import Table
+import public Trigger
+constant triggerData = new Table()
+
+public function trigger.getHandleId() returns int
+    return GetHandleId(this)
+
+/** Attach Data to this trigger */
+public function trigger.setData(int data)
+    triggerData.saveInt(this.getHandleId(), data )
+
+/** Retrieve the data attached to this trigger */
+public function trigger.getData() returns int
+    return triggerData.loadInt(this.getHandleId())

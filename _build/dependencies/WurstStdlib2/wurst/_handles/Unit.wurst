@@ -1,0 +1,601 @@
+package Unit
+import NoWurst
+import public Vectors
+import Item
+import Annotations
+
+native UnitAlive(unit id) returns boolean
+
+public function unit.isType(unittype utype) returns boolean
+	return IsUnitType(this, utype)
+
+/* Helper Functions for use with vectors */
+
+public function createUnit(player p, int unitId, vec2 pos, angle facing) returns unit
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+
+public function createUnit(player p, int unitId, vec3 pos, angle facing) returns unit
+	let u = CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+	u.setFlyHeight(pos.z, 0)
+	return u
+
+public function createUnitZ(player p, int unitId, vec3 pos, angle facing) returns unit
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+		..setFlyHeight(pos.z - pos.getTerrainZ(), 0)
+
+public function unit.addAbility(int abil) returns boolean
+	return UnitAddAbility(this, abil)
+
+public function unit.addHP(real val)
+	this.addState(UNIT_STATE_LIFE, val)
+
+public function unit.addItemHandle(item whichItem) returns boolean
+	return UnitAddItem(this, whichItem)
+
+public function unit.addItemById(int itemId) returns item
+	return UnitAddItemById(this, itemId)
+
+@deprecated("Use addItemById method instead.")
+public function unit.addItem(int itemId) returns item
+	return UnitAddItemById(this, itemId)
+
+public function unit.addItemToSlot(int id, int slot) returns bool
+	return UnitAddItemToSlotById(this, id, slot)
+
+public function unit.addMana(real val)
+	this.addState(UNIT_STATE_MANA, val)
+
+public function unit.addState(unitstate state, real value)
+	SetUnitState(this, state, this.getState(state) + value)
+
+public function unit.addXp(int toAdd, boolean showEyeCandy)
+	AddHeroXP(this, toAdd, showEyeCandy)
+
+public function unit.getXp() returns int
+	return GetHeroXP(this)
+
+/** Share vision of that unit with a player **/
+public function unit.shareVision(player whichPlayer)
+	UnitShareVision(this, whichPlayer, true)
+
+/** Set sharing of vision with a player **/
+public function unit.shareVision(player whichPlayer, bool share)
+	UnitShareVision(this, whichPlayer, share)
+
+public function unit.setXp(int newXpVal, bool showEyeCandy)
+	SetHeroXP(this, newXpVal, showEyeCandy)
+
+public function unit.suspendXp(boolean suspend)
+	SuspendHeroXP(this, suspend)
+
+public function unit.isSuspendedXp() returns boolean
+	return IsSuspendedXP(this)
+
+public function unit.getLevel() returns int
+	return this.isType(UNIT_TYPE_HERO) ? GetHeroLevel(this) : GetUnitLevel(this)
+
+public function unit.setLevel(int level, boolean showEyeCandy)
+	SetHeroLevel(this, level, showEyeCandy)
+
+public function unit.addLevels(int toAdd, boolean showEyeCandy)
+	SetHeroLevel(this, this.getLevel() + toAdd, showEyeCandy)
+
+public function unit.removeLevels(int toRemove) returns bool
+	return UnitStripHeroLevel(this, toRemove)
+
+public function unit.getStr(bool includeBonuses) returns int
+	return GetHeroStr(this, includeBonuses)
+
+public function unit.getAgi(bool includeBonuses) returns int
+	return GetHeroAgi(this, includeBonuses)
+
+public function unit.getInt(bool includeBonuses) returns int
+	return GetHeroInt(this, includeBonuses)
+
+public function unit.setStr(int value)
+	SetHeroStr(this, value, true)
+
+public function unit.setAgi(int value)
+	SetHeroAgi(this, value, true)
+
+public function unit.setInt(int value)
+	SetHeroInt(this, value, true)
+
+public function unit.addStr(int value)
+	SetHeroStr(this, this.getStr(false) + value, true)
+
+public function unit.addAgi(int value)
+	SetHeroAgi(this, this.getAgi(false) + value, true)
+
+public function unit.addInt(int value)
+	SetHeroInt(this, this.getInt(false) + value, true)
+
+public function unit.addSkillPoints(int value) returns bool
+	return UnitModifySkillPoints(this, value)
+
+public function unit.setSkillPoints(int value) returns bool
+	return UnitModifySkillPoints(this, value - this.getSkillPoints())
+
+public function unit.getSkillPoints() returns int
+	return GetHeroSkillPoints(this)
+
+public function unit.selectSkill(int abilcode)
+	SelectHeroSkill(this, abilcode)
+
+public function unit.damageTarget(widget target, real amount, bool attack, bool ranged, attacktype attackType, damagetype damageType, weapontype weaponType)
+	UnitDamageTarget(this, target, amount, attack, ranged, attackType, damageType, weaponType)
+
+public function unit.damageTarget(widget target, real amount, bool attack, bool ranged, attacktype attackType)
+	UnitDamageTarget(this, target, amount, attack, ranged, attackType, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+
+public function unit.damageTarget(widget target, real amount)
+	UnitDamageTarget(this, target, amount, false, false, ATTACK_TYPE_CHAOS, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+
+public function unit.damageTarget(widget target, real amount, attacktype attacktyp)
+	UnitDamageTarget(this, target, amount, false, false, attacktyp, DAMAGE_TYPE_UNIVERSAL, WEAPON_TYPE_WHOKNOWS)
+
+/** Kills a unit by blowing it up */
+public function unit.explode()
+	this.setExploded(true)
+	this.kill()
+
+public function unit.getAbilityLevel(int id) returns int
+	return GetUnitAbilityLevel(this, id)
+
+public function unit.getUnitAcquireRange() returns real
+	return GetUnitAcquireRange(this)
+
+/** Returns the current order of the unit */
+public function unit.getCurrentOrder() returns int
+	return GetUnitCurrentOrder(this)
+
+public function unit.getFacing() returns real
+	return GetUnitFacing(this)
+
+public function unit.getFlyHeight() returns real
+	return GetUnitFlyHeight(this)
+
+public function unit.getFoodUsed() returns int
+	return GetFoodUsed(this.getTypeId())
+
+public function unit.getHP() returns real
+	return this.getState(UNIT_STATE_LIFE)
+
+public function handle.getHandleId() returns int
+	return GetHandleId(this)
+
+public function unit.getMana() returns real
+	return this.getState(UNIT_STATE_MANA)
+
+public function unit.getMaxHP() returns real
+	return this.getState(UNIT_STATE_MAX_LIFE)
+
+public function unit.getMaxMana() returns real
+	return this.getState(UNIT_STATE_MAX_MANA)
+
+public function unit.getMoveSpeed() returns real
+	return GetUnitMoveSpeed(this)
+
+public function unit.getName() returns string
+	return GetUnitName(this)
+
+public function unit.getProperName() returns string
+	return GetHeroProperName(this)
+
+public function unit.getOwner() returns player
+	return GetOwningPlayer(this)
+
+public function unit.getPos() returns vec2
+	return vec2(this.getX(), this.getY())
+
+public function unit.getPos3Real() returns vec3
+	return this.getPos().withRealZ(this)
+
+public function unit.getPos3Fly() returns vec3
+	return vec3(this.getX(), this.getY(), this.getFlyHeight())
+
+public function unit.getPos3Zero() returns vec3
+	return vec3(this.getX(), this.getY(), 0.)
+
+public function unit.getPos3with(real z) returns vec3
+	return vec3(this.getX(), this.getY(), z)
+
+/** Returns the prop window of the unit as angle.*/
+public function unit.getPropWindow() returns angle
+	return angle(GetUnitPropWindow(this))
+
+public function unit.getState(unitstate state) returns real
+	return GetUnitState(this, state)
+
+public function unit.getTurnSpeed() returns real
+	return GetUnitTurnSpeed(this)
+
+public function unit.getTypeId() returns int
+	return GetUnitTypeId(this)
+
+public function unit.getUserData() returns int
+	return GetUnitUserData(this)
+
+public function unit.getPointValue() returns int
+	return GetUnitPointValue(this)
+
+public function unit.getX() returns real
+	return GetUnitX(this)
+
+public function unit.getY() returns real
+	return GetUnitY(this)
+
+public function unit.hasAbility(int id) returns boolean
+	return (GetUnitAbilityLevel(this, id) > 0)
+
+public function unit.hasItem(item whichItem) returns boolean
+	return UnitHasItem(this, whichItem)
+
+public function unit.hasItemById(int itemId) returns boolean
+	return this.getItemById(itemId) != null
+
+/** Returns the first item of the specific type from the unit's inventory,
+	or null if none is present */
+public function unit.getItemById(int itemId) returns item
+	item itm = null
+	for slot = 0 to this.inventorySize() - 1
+		if this.itemInSlot(slot).getTypeId() == itemId
+			itm = this.itemInSlot(slot)
+			break
+	return itm
+
+public function unit.hide()
+	ShowUnit(this, false)
+
+public function unit.isHidden() returns bool
+	return IsUnitHidden(this)
+
+public function unit.inventorySize() returns int
+	return UnitInventorySize(this)
+
+/** Returns the number of items equipped. */
+public function unit.itemCount() returns int
+	int result = 0
+	for slot = 0 to this.inventorySize() - 1
+		if this.itemInSlot(slot) != null
+			result++
+	return result
+
+/** Checks if unit inventory is full. */
+public function unit.isInventoryFull() returns boolean
+	return this.itemCount() == this.inventorySize()
+
+/** Checks if the unit is alive using the UnitAlive native */
+public function unit.isAlive() returns boolean
+	return UnitAlive(this)
+
+/** Checks whether a unit is within range of a point.
+	Takes into account the units collision size **/
+public function unit.isInRange(vec2 pos, real distance) returns bool
+	return IsUnitInRangeXY(this, pos.x, pos.y, distance)
+
+/** Checks whether a unit is an enemy of the given player **/
+public function unit.isEnemyOf(player whichPlayer) returns bool
+	return IsUnitEnemy(this, whichPlayer)
+
+public function unit.issueImmediateOrder(string order) returns boolean
+	return IssueImmediateOrder(this, order)
+
+public function unit.issueImmediateOrderById(int id) returns boolean
+	return IssueImmediateOrderById(this, id)
+
+public function unit.issuePointOrder(string order, vec2 target) returns boolean
+	return IssuePointOrder(this, order, target.x, target.y)
+
+public function unit.issuePointOrderById(int id, vec2 target) returns boolean
+	return IssuePointOrderById(this, id, target.x, target.y)
+
+public function unit.issueRallyPoint(vec2 pos)
+	this.issuePointOrder("rally", pos)
+
+public function unit.issueTargetOrder(string order, widget targetWidget) returns boolean
+	return IssueTargetOrder(this,order,targetWidget)
+
+public function unit.issueTargetOrderById(int id, widget target) returns boolean
+	return IssueTargetOrderById(this, id, target)
+
+public function unit.itemInSlot(int inventoryIndex) returns item
+	return UnitItemInSlot(this, inventoryIndex)
+
+/** Retrieves slot number for speficied item or -1 if not found. */
+public function unit.getItemSlot(item whichItem) returns int
+	int result = -1
+	if this.hasItem(whichItem)
+		for slot = 0 to this.inventorySize() - 1
+			if this.itemInSlot(slot) == whichItem
+				result = slot
+				break
+	return result
+
+public function unit.kill()
+	KillUnit(this)
+
+public function unit.makeAbilityPermanent(int abil, boolean flag) returns boolean
+	return UnitMakeAbilityPermanent(this, flag, abil)
+
+public function unit.isPaused() returns boolean
+	return IsUnitPaused(this)
+
+public function unit.pause()
+	PauseUnit(this, true)
+
+public function unit.queueAnimation(string animation)
+	QueueUnitAnimation(this, animation)
+
+public function unit.remove()
+	RemoveUnit(this)
+
+public function unit.removeAbility(int abil) returns boolean
+	return UnitRemoveAbility(this, abil)
+
+public function unit.removeItem(item itm)
+	UnitRemoveItem(this, itm)
+
+/** Removes the first item of type itemId carried by the unit
+	returns true if an item was found and removed */
+public function unit.removeItemById(int itemId) returns boolean
+	boolean item_found = false
+	for slot = 0 to this.inventorySize()-1
+		if this.itemInSlot(slot).getTypeId() == itemId
+			this.removeItem(this.itemInSlot(slot))
+			item_found = true
+			break
+	return item_found
+
+/** Returns the number of slots containing the given item type */
+public function unit.itemCount(int itemTypeId) returns int
+	var count = 0
+	for i = 0 to 5
+		if this.itemInSlot(i).getTypeId() == itemTypeId
+			count++
+	return count
+
+public function unit.removeItemFromSlot(int slot) returns item
+	return UnitRemoveItemFromSlot(this, slot)
+
+public function unit.dropItemPoint(item itm, vec2 pos) returns boolean
+	return UnitDropItemPoint(this, itm, pos.x, pos.y)
+
+public function unit.dropItemSlot(item itm, int slot) returns boolean
+	return UnitDropItemSlot(this, itm, slot)
+
+public function unit.dropItemTarget(item itm, widget target) returns boolean
+	return UnitDropItemTarget(this, itm, target)
+
+public function unit.useItem(item itm) returns boolean
+	return UnitUseItem(this, itm)
+
+public function unit.useItemPoint(item itm, vec2 pos) returns boolean
+	return UnitUseItemPoint(this, itm, pos.x, pos.y)
+
+public function unit.useItemTarget(item itm, widget target) returns boolean
+	return UnitUseItemTarget(this, itm, target)
+
+public function unit.revive(vec2 pos, boolean doEyecandy)
+	ReviveHero(this, pos.x, pos.y, doEyecandy)
+
+public function unit.setAbilityLevel(int abilId, int lvl)
+	SetUnitAbilityLevel(this, abilId, lvl)
+
+public function unit.setAnimation(string name)
+	SetUnitAnimation(this, name)
+
+public function unit.setAnimation(int index)
+	SetUnitAnimationByIndex(this, index)
+
+public function unit.lookAt(string bone, unit target, vec3 offset)
+	SetUnitLookAt(this, bone, target, offset.x, offset.y, offset.z)
+
+public function unit.lookAt(string bone, unit target)
+	this.lookAt(bone, target, ZERO3)
+
+public function unit.resetLookAt()
+	ResetUnitLookAt(this)
+
+public function unit.setColor(playercolor c)
+	SetUnitColor(this, c)
+
+/** Sets whether a unit explodes on death */
+public function unit.setExploded(boolean exploded)
+	SetUnitExploded(this, exploded)
+
+public function unit.setFacing(real a)
+	SetUnitFacing(this, a)
+
+public function unit.setFlyHeight(real height, real rate)
+	SetUnitFlyHeight(this, height, rate)
+
+public function unit.setHP(real hp)
+	this.setState(UNIT_STATE_LIFE, hp)
+
+public function unit.setInvulnerable(boolean flag)
+	SetUnitInvulnerable(this, flag)
+
+public function unit.setMana(real val)
+	this.setState(UNIT_STATE_MANA, val)
+
+public function unit.setMoveSpeed(real speed)
+	SetUnitMoveSpeed(this, speed)
+
+public function unit.setOwner(player p, boolean changeColor)
+	SetUnitOwner(this, p, changeColor)
+
+public function unit.setPathing(boolean value)
+	SetUnitPathing(this,value)
+
+/** Sets the unit's position using the SetUnitPosition native.
+	This native comes with some side effects like additional
+	position verification and stopping the target unit. */
+public function unit.setPos(vec2 pos)
+	SetUnitPosition(this, pos.x, pos.y)
+
+public function unit.setPosFly(vec3 pos)
+	this.setPos(pos.x, pos.y)
+	this.setFlyHeight(pos.z, 0)
+
+public function unit.setPosReal(vec3 pos)
+	this.setPos(pos.x, pos.y)
+	this.setFlyHeight(pos.z - pos.getTerrainZ(), 0)
+
+public function unit.setPos(real x, real y)
+	SetUnitPosition(this, x, y)
+
+public function unit.setPropWindow(real radians)
+	SetUnitPropWindow(this, radians)
+
+public function unit.setScale(real scale)
+	SetUnitScale(this, scale, scale, scale)
+
+public function unit.setState(unitstate state, real value)
+	SetUnitState(this, state, value)
+
+public function unit.setTimeScale(real scale)
+	SetUnitTimeScale(this, scale)
+
+public function unit.setTimedLife(real time)
+	UnitApplyTimedLife(this, 'BTLF', time)
+
+public function unit.setTurnSpeed(real speed)
+	SetUnitTurnSpeed(this, speed)
+
+public function unit.setUseFood(boolean flag)
+	SetUnitUseFood(this, flag)
+
+public function unit.setUserData(int data)
+	SetUnitUserData(this, data)
+
+public function unit.setVertexColor(int r, int g, int b, int a)
+	SetUnitVertexColor(this, r, g, b, a)
+
+public function unit.setX(real x)
+	SetUnitX(this, x)
+
+/** Sets the coordinmates of the unit to the given position.
+	Uses the SetUnitX/Y natives */
+public function unit.setXY(vec2 pos)
+	this..setX(pos.x)..setY(pos.y)
+
+/** Sets the coordinmates of the unit to the given position.
+	Uses the SetUnitX/Y natives */
+public function unit.setXY(vec3 pos)
+	this..setX(pos.x)..setY(pos.y)
+
+/** Sets the coordinmates of the unit to the given position.
+	Z is being set as flyheight. Uses the SetUnitX/Y natives */
+public function unit.setXYZ(vec3 pos)
+	this..setX(pos.x)..setY(pos.y)
+	..setFlyHeight(pos.z, 0)
+
+public function unit.setXYZReal(vec3 pos)
+	SetUnitX(this, pos.x)
+	SetUnitY(this, pos.y)
+	SetUnitFlyHeight(this, pos.z - pos.getTerrainZ(), 0)
+
+public function unit.setY(real y)
+	SetUnitY(this, y)
+
+public function unit.show()
+	ShowUnit(this, true)
+
+public function unit.subHP(real val)
+	this.subState(UNIT_STATE_LIFE, val)
+
+public function unit.subMana(real val)
+	this.subState(UNIT_STATE_MANA, val)
+
+public function unit.subState(unitstate state, real value)
+	SetUnitState(this, state, this.getState(state) - value)
+
+public function unit.unpause()
+	PauseUnit(this, false)
+
+public function vec2.withRealZ(unit u) returns vec3
+	return vec3(this.x, this.y, this.getTerrainZ() + u.getFlyHeight())
+
+/** Cancels the current order */
+public function unit.abortOrder() returns boolean
+	if IsUnitPaused(this)
+		return false
+	else
+		PauseUnit(this, true)
+		IssueImmediateOrder(this, "stop")
+		PauseUnit(this, false)
+	return true
+
+public function unit.resetAbilityCooldown(int abilId)
+	let lvl = this.getAbilityLevel(abilId)
+	this..removeAbility(abilId)..addAbility(abilId)..setAbilityLevel(abilId, lvl)
+
+/** Reset all cooldowns of the unit **/
+public function unit.resetCooldown()
+	UnitResetCooldown(this)
+
+public function unit.getDefaultMovespeed() returns real
+	return GetUnitDefaultMoveSpeed(this)
+
+/** Returns the default prop window of the unit as angle.*/
+public function unit.getDefaultPropWindow() returns real
+	return GetUnitDefaultPropWindow(this)
+
+public function unit.getDefaultTurnSpeed() returns real
+	return GetUnitDefaultTurnSpeed(this)
+
+public function unit.getDefaultAcquireRange() returns real
+	return GetUnitDefaultAcquireRange(this)
+
+public function unit.getDefaultFlyHeight() returns real
+	return GetUnitDefaultFlyHeight(this)
+
+public function unit.getCD(int abilCode) returns real
+	return EXGetAbilityState(EXGetUnitAbility(this, abilCode), ABILITY_STATE_COOLDOWN)
+
+public function unit.setCD(int abilCode, real cd)
+	EXSetAbilityState(EXGetUnitAbility(this, abilCode), ABILITY_STATE_COOLDOWN, cd)
+
+@deprecated("Use getPos instead.")
+public function unit.getLoc() returns location
+	return GetUnitLoc(this)
+
+public function unit.isIllusion() returns bool
+	return IsUnitIllusion(this)
+
+public function unit.incAbilityLevel(int abilityId)
+	IncUnitAbilityLevel(this, abilityId)
+
+public function unit.decAbilityLevel(int abilityId)
+	DecUnitAbilityLevel(this, abilityId)
+
+class InventoryIterator
+	private item array[6] items
+	private int count = 0
+
+	construct(unit u)
+		for slot = UnitInventorySize(u) - 1 downto 0
+			let i = UnitItemInSlot(u, slot)
+			if i != null
+				items[count] = i
+				count++
+
+	function hasNext() returns bool
+		return count > 0
+
+	function next() returns item
+		count--
+		let i = items[count]
+		items[count] = null
+		return i
+
+	function close()
+		destroy this
+
+	protected function iterator() returns InventoryIterator
+		return this
+
+/** Creates an inventory iterator that allows you to access each existing item in the unit's inventory via for-loop. An example 'for i in u.inventory()'. */
+public function unit.inventory() returns InventoryIterator
+	return new InventoryIterator(this)

@@ -1,0 +1,209 @@
+package IceStomp
+
+import IceMage
+import GlobalDefines
+import EditorHelper
+import TriggerHelper
+import TimerUtils
+import SkillHelper
+import SoundUtils
+import StatisticsHelper
+
+public class IceStomp extends IceMageSkill
+    static let self_id = 'im0w'
+    static let effect_id = 'im1w'
+    static let help_id = 'im2w'
+    static let buff_id = 'im3w'
+    static let self_name = "IceStomp"
+    static let dmg = 240.
+    static let radius = 350.
+    static let last_time = 3.
+    static let inc = 12.
+    static let casting_time = 1.
+    static let attack_speed_dec = 0.15
+    static let move_speed_dec = 0.15
+    static let mana_cost = 22
+    static let cool_down = 5.
+    static let dmg_type = ATTACK_TYPE_MAGIC
+    static let desc = Color_Define.COLOR_NORMAL + "↓积蓄力量，{0}秒后对{1}范围内敌人造成{2}伤害|n".format(casting_time.toString(1), radius.toString(1), dmg.toString(1)) +
+        "，并减慢他们{0}%/{1}%的速度。|n".format((attack_speed_dec*100).toString(0), (move_speed_dec*100).toString(0)) +
+        Color_Define.COLOR_ICEMAGE + "↑ {0}%法术强度额外伤害|n".format((inc*100).toString(0)) +
+        Color_Define.COLOR_LAST_TIME + "→减速持续{0}秒。|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+
+    private effect channel_effect_ = null
+    private effect image_channel_effect_ = null
+    private trigger channel_trigger_ = CreateTrigger()
+    private trigger endcast_trigger_ = CreateTrigger()
+    private timer display_effect_timer_ = null
+    private real effect_scale_ = 0.
+    static var clap = new SoundDefinition(Sounds.thunderclapCaster1, false, true)
+
+    construct(unit u)
+        super(u)
+
+    ondestroy
+        endcast_trigger_..disable().destr()
+        channel_trigger_..disable().destr()
+
+
+    override function listen()
+        channel_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_CHANNEL)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceStomp.self_id))
+            ..addAction(function IceStomp.prepare)
+            ..setData(this castTo int)
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceStomp.self_id))
+            ..addAction(function IceStomp.cast)
+            ..setData(this castTo int)
+        endcast_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_ENDCAST)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceStomp.self_id))
+            ..addAction(function IceStomp.endcast)
+            ..setData(this castTo int)
+
+    static function prepare()
+        var self = GetTriggeringTrigger().getData() castTo IceStomp
+        self.channel_effect_ = addEffect("imw.mdx", self.owner_.getPos())
+        self.effect_scale_ = 0.4
+        self.channel_effect_.setScale(self.effect_scale_)
+        if self.display_effect_timer_ != null
+            self.display_effect_timer_.release()
+        self.display_effect_timer_ = getTimer()
+        self.display_effect_timer_..setData(self castTo int)
+            .startPeriodic(0.02, function effect_tick)
+
+        let image_unit = (PlayerUnitHelper.get_instance(self.owner_) castTo IceMage).ice_image_unit_
+        if image_unit != null
+            self.image_channel_effect_ = addEffect("imw.mdx", image_unit.getPos())
+            self.image_channel_effect_.setScale(0.4)
+
+    function image_cast(unit image_unit)
+        if image_channel_effect_ == null
+            Log.warn("IceStomp image endcast but effect is null")
+        let faker = createUnit(owner_.getOwner(), FAKE_CASTER, image_unit.getPos(), angle(0))
+        faker..addAbility(IceStomp.help_id)..issueImmediateOrder("thunderclap")..setXY(image_unit.getPos())
+            ..setTimedLife(0.5)
+        clap.playOnPoint(faker.getPos3Real())
+        let g = CreateGroup()
+        g.enumUnitsInRange(faker.getPos(), IceStomp.radius+AREA_DMG_CORRECTION)
+        for i in g
+            deal_dmg(i)
+        g.destr()
+        if image_channel_effect_ != null
+            image_channel_effect_..setPos(vec2(0,0))..destr()
+            image_channel_effect_ = null
+
+    static function cast()
+        var self = GetTriggeringTrigger().getData() castTo IceStomp
+        self.channel_effect_..setPos(vec2(0,0))..destr()
+        self.channel_effect_ = null
+        let image_unit = (PlayerUnitHelper.get_instance(self.owner_) castTo IceMage).ice_image_unit_
+        if image_unit != null
+            self.image_cast(image_unit)
+
+        let g = CreateGroup()
+        g.enumUnitsInRange(self.owner_.getPos(), IceStomp.radius+AREA_DMG_CORRECTION)
+        for i in g
+            self.deal_dmg(i)
+        g.destr()
+        clap.playOnPoint(self.owner_.getPos3Real())
+        self.display_effect_timer_.release()
+        self.display_effect_timer_ = null
+        self.effect_scale_ = 0
+
+    static function endcast()
+        var self = GetTriggeringTrigger().getData() castTo IceStomp
+        if self.channel_effect_ != null
+            self.channel_effect_..setPos(vec2(0,0))..destr()
+            self.channel_effect_ = null
+        if self.image_channel_effect_ != null
+            self.image_channel_effect_..setPos(vec2(0,0))..destr()
+            self.image_channel_effect_ = null
+        if self.display_effect_timer_ != null
+            self.display_effect_timer_.release()
+            self.display_effect_timer_ = null
+        self.effect_scale_ = 0
+
+    static function effect_tick()
+        var self = GetExpiredTimer().getData() castTo IceStomp
+        if self.channel_effect_ == null
+            Log.error("IceStomp effect is null when effect tick")
+            self.display_effect_timer_.release()
+            self.display_effect_timer_ = null
+            return
+        self.effect_scale_ += 0.11
+        self.channel_effect_.setScale(self.effect_scale_)
+        let image_unit = (PlayerUnitHelper.get_instance(self.owner_) castTo IceMage).ice_image_unit_
+        if image_unit != null
+            if self.image_channel_effect_ == null
+                Log.error("IceStomp image effect is null when image exists")
+                return
+            self.image_channel_effect_..setScale(self.effect_scale_)..setPos(image_unit.getPos())
+        else
+            // image die
+            if self.image_channel_effect_ != null
+                self.image_channel_effect_..setPos(vec2(0,0))..destr()
+                self.image_channel_effect_ = null
+
+    function deal_dmg(unit u)
+        if not IsUnitAlly(u, GetOwningPlayer(owner_)) and u.isAlive()
+            let final_dmg = GetHeroAgi(owner_, true) * IceStomp.inc + IceStomp.dmg
+            owner_.damageTarget(u, final_dmg, IceStomp.dmg_type)
+            StatisticsHelper.add_real(owner_.getOwner(), final_dmg)
+
+@compiletime
+function create_ice_stomp()
+    assertTrue(IceStomp.casting_time > EditorHelper.attack1_animation_dp, "casting time must greater than atk1 animation dp")
+    let ed = new AbilityDefinitionMountainKingThunderClap(IceStomp.self_id)
+    ed..setAttackSpeedReduction(1, IceStomp.attack_speed_dec)
+        ..setMovementSpeedReduction(1, IceStomp.move_speed_dec)
+        ..setSpecificTargetDamage(1, 0.)
+        ..setAOEDamage(1, 0)
+        ..setAreaofEffect(1, IceStomp.radius-AREA_DMG_CORRECTION)
+        ..setDurationHero(1, IceStomp.last_time)
+        ..setDurationNormal(1, IceStomp.last_time)
+        ..setManaCost(1, IceStomp.mana_cost)
+        ..setCooldown(1, IceStomp.cool_down)
+        ..setCastingTime(1, IceStomp.casting_time - EditorHelper.attack1_animation_dp)
+        ..setHeroAbility(false)
+        ..setArtCaster("imw.mdx")
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("W")
+        ..setName(IceStomp.self_name)
+        ..setLevels(1)
+        ..setBuffs(1, IceStomp.buff_id.toRawCode())
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Stomp" + Color_Define.COLOR_HOT_KEY + "(W)")
+        ..setTooltipNormalExtended(1, IceStomp.desc)
+        ..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNFreezingBreath.blp")
+    destroy ed
+
+@compiletime
+function create_ice_stomp_image()
+    let ed = new AbilityDefinitionMountainKingThunderClap(IceStomp.help_id)
+    ed..setAttackSpeedReduction(1, IceStomp.attack_speed_dec)
+        ..setMovementSpeedReduction(1, IceStomp.move_speed_dec)
+        ..setSpecificTargetDamage(1, 0.)
+        ..setAOEDamage(1, 0)
+        ..setAreaofEffect(1, IceStomp.radius-AREA_DMG_CORRECTION)
+        ..setDurationHero(1, IceStomp.last_time)
+        ..setDurationNormal(1, IceStomp.last_time)
+        ..setManaCost(1, 0)
+        ..setCooldown(1, 0)
+        ..setHeroAbility(false)
+        ..setName(IceStomp.self_name)
+        ..setLevels(1)
+        ..setBuffs(1, IceStomp.buff_id.toRawCode())
+    destroy ed
+
+@compiletime
+function create_ice_stomp_buff()
+    let ed = new BuffDefinition(IceStomp.buff_id, 'BHtc')
+    ed..setArtTarget(1, "Abilities\\Spells\\Undead\\FreezingBreath\\FreezingBreathMissile.mdl")
+        ..setTargetAttachments(1, 1)
+        ..setTargetAttachmentPoint0(1, "head")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "IceStomp")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "该单位被IceStomp击中，减速了。")
+        ..setIconNormal(1, "ReplaceableTextures\\CommandButtons\\BTNFreezingBreath.blp")
+    destroy ed

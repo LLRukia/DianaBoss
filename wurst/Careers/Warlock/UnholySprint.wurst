@@ -1,0 +1,120 @@
+package UnholySprint
+
+import Warlock
+import TriggerHelper
+import TimerUtils
+import EditorHelper
+import GlobalDefines
+
+public class UnholySprint extends WarlockSkill
+    static let self_id = 'wl0e'
+    static let help_id = 'wl1e'
+    static let buff_id = 'wl2e'
+    static let order_id_on = "immolation"
+    static let order_id_off = "unimmolation"
+    private trigger m_tr_off = CreateTrigger()
+    private timer m_tm
+    construct(unit u)
+        super(u)
+        m_tm = CreateTimer()
+        m_tm..setData(this castTo int)
+
+    ondestroy
+        m_tr_off..disable().destr()
+        m_tm..pause().destr()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_ISSUED_ORDER)
+            ..addCondition(Filter(()->GetIssuedOrderId()==OrderId(UnholySprint.order_id_on)))
+            ..addAction(function UnholySprint.cast)
+            ..setData(this castTo int)
+        m_tr_off..registerUnitEvent(owner_, EVENT_UNIT_ISSUED_ORDER)
+            ..addCondition(Filter(()->GetIssuedOrderId()==OrderId(UnholySprint.order_id_off)))
+            ..addAction(function UnholySprint.cast_off)
+            ..setData(this castTo int)
+
+    static function cast()
+        var obj = GetTriggeringTrigger().getData() castTo UnholySprint
+        obj.m_tm.startPeriodic(0.05, function tm_cb)
+        obj.owner_..addAbility(help_id)..add_buff(buff_id, BuffClearType.inherent, BuffType.buffs, obj)
+
+    static function cast_off()
+        var obj = GetTriggeringTrigger().getData() castTo UnholySprint
+        //obj.m_self_unit.removeAbility(help_id)
+        obj.owner_.remove_buff(buff_id)
+        
+
+    override function on_buff_removed(unit u)
+        if u != owner_
+            return
+        u.removeAbility(help_id)
+        m_tm.pause()
+
+    static function tm_cb()
+        var obj = GetExpiredTimer().getData() castTo UnholySprint
+        real r = obj.owner_.getMaxHP() * 0.002
+        obj.owner_.setHP(obj.owner_.getHP() - r)
+
+@compiletime
+function create_unholy_sprint()
+    var ed = new AbilityDefinitionImmolationcreep(UnholySprint.self_id)
+    ed..setManaDrainedperSecond(1, 0)
+        ..setBufferManaRequired(1, 0)
+        ..setDamageperInterval(1, 0)
+        ..setButtonPositionNormalX(2)
+        ..setButtonPositionNormalY(2)
+        ..setButtonPositionTurnOffX(2)
+        ..setButtonPositionTurnOffY(2)
+        ..setHotkeyNormal("E")
+        ..setHotkeyTurnOff("E")
+        ..setManaCost(1, 0)
+        ..setCooldown(1, 5)
+        ..setName("UnholySprint")
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_WARLOCK + "Turn On Unholy Sprint" +
+            Color_Define.COLOR_HOT_KEY + "(E)")
+        ..setTooltipTurnOff(1, 
+            Color_Define.COLOR_WARLOCK + "Turn Off Unholy Sprint" +
+            Color_Define.COLOR_HOT_KEY + "(E)")
+        ..setTooltipNormalExtended(1, 
+            Color_Define.COLOR_NORMAL + "开启邪恶冲刺，每秒消耗最大生命的4%，使你移动速度提升70%。|n" +
+            Color_Define.COLOR_WARNING + "可致死|n" +
+            Color_Define.COLOR_COOL_DOWN + "→CD:5s")
+        ..setTooltipTurnOffExtended(1, Color_Define.COLOR_NORMAL + "关闭邪恶冲刺以停止消耗生命值")
+        ..setTargetsAllowed(1, "")
+        ..setBuffs(1, "wl3e")
+        ..setIconNormal("ReplaceableTextures\\CommandButtons\\wle.blp")
+        ..setIconTurnOff("ReplaceableTextures\\CommandButtons\\BTNCancel.blp")
+
+@compiletime
+function create_unholy_sprint_aura_speed()
+    var ed = new AbilityDefinitionAuraEnduranceCreep(UnholySprint.help_id)
+    ed..setMovementSpeedIncrease(1, 0.7)
+    ..setAttackSpeedIncrease(1, 0)
+    ..setArtTarget("")
+    ..setBuffs(1, UnholySprint.buff_id.toRawCode())
+    ..setTargetsAllowed(1, "self")
+    ..setName("UnholySprintAura")
+    ..setButtonPositionNormalX(0)
+    ..setButtonPositionNormalY(-11)
+    
+
+@compiletime
+function create_unholy_sprint_aura_buff()
+    var editor = new BuffDefinition(UnholySprint.buff_id, 'Bdet')
+    editor..setName(1, "UnholySprint")
+        ..setTooltipNormal(1, Color_Define.COLOR_WARLOCK + "Unholy Sprint")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位正在冲刺。")
+        ..setIconNormal(1, "ReplaceableTextures\\CommandButtons\\BTNAnimalWarTraining.blp")
+
+    destroy editor
+@compiletime
+function create_unholy_sprint_buff()
+    var editor = new BuffDefinition('wl3e', 'Bdet')
+    editor..setName(1, "Sacrifice")
+        ..setTooltipNormal(1, Color_Define.COLOR_WARLOCK + "Sacrifice")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位正在消耗生命。")
+        ..setArtTarget(1, "wle.mdx")
+        ..setTargetAttachments(1, 0)
+        ..setIconNormal(1, "ReplaceableTextures\\CommandButtons\\wle.blp")
+    destroy editor

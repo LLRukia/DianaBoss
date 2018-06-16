@@ -1,0 +1,74 @@
+package Warlock
+
+import public PlayerUnitHelper
+
+import public WarlockSkill
+import EditorHelper
+import PlayerUnit
+
+public class Warlock extends PlayerUnit
+    static let model_file = "units\\undead\\Necromancer\\Necromancer"
+
+    construct(player pl, unit u)
+        super(pl, u)
+        career_type_ = warlock
+        init_self()
+        listen_all()
+        //u.hideAbility('wlbk', true)
+
+    override function init_self() 
+        skill_list_.add(new ShadowCounterSpell(uself_))
+        skill_list_.add(new UnholySprint(uself_))
+        skill_list_.add(new ShadowBolt(uself_))
+        skill_list_.add(new SiphonShadow(uself_))
+        skill_list_.add(new EternalDetermination(uself_))
+        uself_.setAbilityLevel(SiphonShadow.self_id, 5)
+        skill_list_.add(new SoulGem(uself_))
+        // m_ls_skill.add(new Revive(m_self_unit))
+
+    override function refresh()
+        super.refresh()
+        uself_..removeAbility(ShadowBolt.self_id)..addAbility(ShadowBolt.self_id)
+            ..removeAbility(SiphonShadow.self_id)..addAbility(SiphonShadow.self_id)..setAbilityLevel(SiphonShadow.self_id, 5)
+            ..removeAbility(ShadowCounterSpell.self_id)..addAbility(ShadowCounterSpell.self_id)
+            ..removeAbility(EternalDetermination.self_id)..addAbility(EternalDetermination.self_id)
+
+
+@compiletime
+function create_warlock()
+    var editor = EditorHelper.create_template_hero(WARLOCK)
+    string wl_skill_list = ShadowCounterSpell.self_id.toRawCode() + "," + 
+        UnholySprint.self_id.toRawCode() + "," + ShadowBolt.self_id.toRawCode() + ","+
+        SiphonShadow.self_id.toRawCode() + "," + EternalDetermination.self_id.toRawCode() +
+        "," + SoulGem.self_id.toRawCode() + 
+        ",wlau,AInv,bAnA"
+
+    editor..setNormalAbilities(wl_skill_list)
+        ..setUnitSoundSet("Necromancer")
+        ..setProperNames(Color_Define.COLOR_WARLOCK + "术士")
+        ..setName("术士")
+        ..setModelFile(Warlock.model_file)
+        ..setArtSpecial(Warlock.model_file)
+        ..setAttack1ProjectileArt("Abilities\\Weapons\\SkeletalMageMissile\\SkeletalMageMissile.mdl")
+        ..setAttack1AttackType(AttackType.Magic)
+        ..setPrimaryAttribute("INT")
+
+@compiletime
+function create_wl_au()
+    var editor = EditorHelper.create_aura('wlau')
+    editor..setArtTarget("")
+        ..setName("wl")
+        ..setBuffs(1, "wlid")
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(-11)
+    destroy editor
+
+@compiletime
+function create_wl_id()
+    var editor = new BuffDefinition('wlid', 'Bdet')
+    editor..setName(1, "Warlock")
+        ..setTooltipNormal(1, Color_Define.COLOR_NORMAL + "Warlock")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_WARLOCK + "Anti-mana.")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\wl.blp")
+
+    

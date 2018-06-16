@@ -1,0 +1,5 @@
+/_build/*.w3x
+/_build/objectEditingOutput
+.vscode
+_build/compiled.j.txt
+*.code-workspace

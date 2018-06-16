@@ -1,0 +1,98 @@
+package ArcaneFume
+
+import ArcaneMage
+import AbilityObjEditing
+import ObjectIds
+import BuffObjEditing
+import TriggerHelper
+import SkillHelper
+import TimerUtils
+import PlayerUnit
+import Assert
+
+public class ArcaneFume extends ArcaneMageSkill
+    static let self_id = 'am0d'
+    static let self_name = "ArcaneFume"
+    static let last_time = 1.5
+    static let cool_down = 12.
+    static let mana_cost = 5
+    static let buff_id = 'amdd'
+    static let desc = Color_Define.COLOR_NORMAL + "↑秘术！无敌！|n" +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒。|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_WARNING + "★使用此技能会消除掉大部分魔法效果。|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    private Invulnerability buff_ = null
+    private timer timer_
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneFume.self_id))
+            ..addAction(function ArcaneFume.cast)
+            ..setData(this castTo int)
+
+    override function on_buff_removed(unit u)
+        if not assert(u == owner_, "D buff error, unit not matched")
+            return
+
+        if buff_ != null
+            destroy buff_
+            buff_ = null
+            (PlayerUnitHelper.get_instance(owner_) castTo PlayerUnit).set_invulnerable(false)
+
+    static function cast()
+        var self = GetTriggeringTrigger().getData() castTo ArcaneFume
+
+        self.buff_ = SkillHelper.protect(self.owner_)
+        self.owner_.remove_buff(BuffClearType.additions, BuffType.buffs)
+        self.owner_.remove_buff(BuffClearType.additions, BuffType.debuffs)
+        self.owner_.add_buff(ArcaneFume.buff_id, BuffClearType.stable, BuffType.buffs, self)
+        (PlayerUnitHelper.get_instance(self.owner_) castTo PlayerUnit).set_invulnerable(true)
+        self.timer_ = getTimer()
+        self.timer_..setData(self castTo int)
+            ..start(ArcaneFume.last_time, function on_buff_expired)
+    
+    static function on_buff_expired()
+        let self = GetExpiredTimer().getData() castTo ArcaneFume
+        self.clear()
+
+    override function clear()
+        if timer_ != null
+            timer_.release()
+            timer_ = null
+        owner_.remove_buff(ArcaneFume.buff_id)
+
+@compiletime
+function create_arcane_fume()
+    let ed = new AbilityDefinitionBeserk(ArcaneFume.self_id)
+    ed..setDamageTakenIncrease(1, 0)
+        ..setLevels(1)
+        ..setMovementSpeedIncrease(1, 0)
+        ..setAttackSpeedIncrease(1, 0)
+        ..setHotkeyNormal("D")
+        ..setDurationHero(1, ArcaneFume.last_time)
+        ..setDurationNormal(1, ArcaneFume.last_time)
+        ..setManaCost(1, ArcaneFume.mana_cost)
+        ..setCooldown(1, ArcaneFume.cool_down)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(1)
+        ..setName(ArcaneFume.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Arcane Fume" +
+            Color_Define.COLOR_HOT_KEY + "(D)")
+        ..setTooltipNormalExtended(1, ArcaneFume.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\amd.blp")
+        ..setBuffs(1, ArcaneFume.buff_id.toRawCode())
+    
+@compiletime
+function create_arcane_fume_buff()
+    let ed = new BuffDefinition(ArcaneFume.buff_id, 'Bbsk')
+    ed..setArtTarget(1, "amd.mdx")
+    ..setTargetAttachments(1, 1)
+    ..setTargetAttachmentPoint0(1, "origin")
+    ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Arcane Fume")
+    ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位免疫伤害。")
+    ..setIconNormal(1, "replaceabletextures\\commandbuttons\\amd.blp")
+    

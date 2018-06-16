@@ -1,0 +1,48 @@
+package ArcaneCounterSpell
+
+import ArcaneMage
+import SkillHelper
+import TriggerHelper
+import EditorHelper
+import GlobalDefines
+
+public class ArcaneCounterSpell extends ArcaneMageSkill
+    static let self_id = 'am0f'
+    static let self_name = "ArcaneCounterSpell"
+    static let range = 800.
+    static let cool_down = 35.
+    static let mana_cost = 33
+    static let desc = Color_Define.COLOR_NORMAL + "→反制Boss的技能（粉色字体）|n" +
+        Color_Define. COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneCounterSpell.self_id))
+            ..addAction(function ArcaneCounterSpell.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        let owner = (GetTriggeringTrigger().getData() castTo ArcaneCounterSpell).owner_
+        let target = GetSpellTargetUnit()
+        SkillHelper.counter_spell(owner, target)
+
+@compiletime
+function create_shadow_counter_spell()
+    let editor = EditorHelper.create_channel_template(ArcaneCounterSpell.self_id, emSkillKey.F)
+    editor..setCastRange(1, ArcaneCounterSpell.range)
+        ..setManaCost(1, ArcaneCounterSpell.mana_cost)
+        ..setCooldown(1, ArcaneCounterSpell.cool_down)
+        ..setButtonPositionNormalX(2)
+        ..setButtonPositionNormalY(1)
+        ..setHotkeyNormal("F")
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ENEMY + ",invulnerable,vulnerable")
+        ..setName(ArcaneCounterSpell.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Counter Spell" + Color_Define.COLOR_HOT_KEY + "(F)")
+        ..setTooltipNormalExtended(1, ArcaneCounterSpell.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\counterspell.blp")
+
+    destroy editor

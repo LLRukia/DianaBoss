@@ -1,0 +1,137 @@
+package Revive
+
+import Priest
+import TriggerHelper
+import EditorHelper
+import GlobalDefines
+import TimerUtils
+import ReviveHelper
+import Assert
+
+public class Revive extends PriestSkill
+    static let self_id = 'pr0f'
+    static let self_name = "Revive"
+    static let channel_time = 5.
+    static let range = 550.
+    static let cool_down = 20.
+    static let mana_cost = 50
+    static let effect_revive_target_path = "Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl"
+    static let desc = Color_Define.COLOR_NORMAL + "→吟唱{0}秒后，复活目标。|n".format(channel_time.toString()) +
+        Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(1)) +
+        Color_Define.COLOR_WARNING + "▼技能被打断也会进入CD|n▲复活后目标的生命值与你的当前生命值百分比一致，且不超过50%|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:20s"
+
+    static let display_timer_tick_interval = 0.25
+    private trigger channel_trigger_ = CreateTrigger()
+    private trigger endcast_trigger_ = CreateTrigger()
+    private trigger finish_trigger_ = CreateTrigger()
+    private unit reviving_target_ = null
+    private timer display_timer_
+    private real channel_time_
+    construct(unit u)
+        super(u)
+    ondestroy
+        channel_trigger_..disable().destr()
+        endcast_trigger_..disable().destr()
+        finish_trigger_..disable().destr()
+        if display_timer_ != null
+            display_timer_.release()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==Revive.self_id))
+            ..addAction(function Revive.cast)
+            ..setData(this castTo int)
+        channel_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_CHANNEL)
+            ..addCondition(Filter(()->GetSpellAbilityId()==Revive.self_id))
+            ..addAction(function Revive.prepare)
+            ..setData(this castTo int)
+        endcast_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_ENDCAST)
+            ..addCondition(Filter(()->GetSpellAbilityId()==Revive.self_id))
+            ..addAction(function Revive.endcast)
+            ..setData(this castTo int)
+        finish_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_FINISH)
+            ..addCondition(Filter(()->GetSpellAbilityId()==Revive.self_id))
+            ..addAction(function Revive.finish)
+            ..setData(this castTo int)
+
+    static function prepare()
+        var self = GetTriggeringTrigger().getData() castTo Revive
+        let lc = GetSpellTargetLoc()
+        let target_pos = vec2(GetLocationX(lc), GetLocationY(lc))
+        RemoveLocation(lc)
+
+        self.reviving_target_ = ReviveHelper.can_revive(target_pos)
+        if self.reviving_target_ == null
+            printTimedToPlayer(Color_Define.COLOR_PRIEST + "请对准尸体释放。", 2, self.owner_.getOwner())
+            self.owner_.issueImmediateOrder("stop")
+            return
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo Revive
+        if self.display_timer_ != null
+            self.display_timer_.release()
+        self.display_timer_ = getTimer()
+        self.channel_time_ = 0
+        flashEffect(Revive.effect_revive_target_path, self.reviving_target_.getPos())
+        self.display_timer_..setData(self castTo int)
+            ..startPeriodic(Revive.display_timer_tick_interval, function displaytime)
+
+    static function finish()
+        let self = GetTriggeringTrigger().getData() castTo Revive
+        if self.channel_time_ >= Revive.channel_time
+            if ReviveHelper.is_dead_body_can_revive(self.reviving_target_)
+                let hp_per = self.owner_.getHP() / self.owner_.getMaxHP()
+                let final_per = hp_per > 0.5 ? 0.5 : hp_per
+                ReviveHelper.revive(self.reviving_target_, final_per)
+                flashEffect("Abilities\\Spells\\Human\\HolyBolt\\HolyBoltSpecialArt.mdl", self.reviving_target_.getPos())
+
+    static function displaytime()
+        let self = GetExpiredTimer().getData() castTo Revive
+        if not ReviveHelper.is_dead_body_can_revive(self.reviving_target_)
+            self.owner_.issueImmediateOrder("stop")
+            self.display_timer_.release()
+            self.display_timer_ = null
+            return
+
+        self.channel_time_ += Revive.display_timer_tick_interval
+        let text_speed = 64 * 0.071 / 128
+        let text_angle = 90.
+        createTTEx(self.owner_.getPos3with(120) - vec3(145, 0, 0), self.channel_time_.toString(), 7, color(216, 181, 41).withAlpha(255))
+            ..setPermanent(false)
+            ..setFadepoint(2.)
+            ..setLifespan(3.)
+            ..setVelocity(text_speed * CosBJ(text_angle), text_speed * SinBJ(text_angle))
+        flashEffect(Revive.effect_revive_target_path, self.reviving_target_.getPos())
+        if self.channel_time_ >= Revive.channel_time
+            self.owner_.issueImmediateOrder("stop")
+            self.display_timer_.release()
+            self.display_timer_ = null
+
+    static function endcast()
+        let self = GetTriggeringTrigger().getData() castTo Revive
+        if self.display_timer_ != null
+            self.display_timer_.release()
+            self.display_timer_ = null
+
+@compiletime
+function create_revive()
+    let ed = new AbilityDefinitionSeaWitchTornado(Revive.self_id)
+    ed..setSummonedUnitType(1, "")
+        ..setCastRange(1, Revive.range)
+        ..setManaCost(1, Revive.mana_cost)
+        ..setCooldown(1, Revive.cool_down)
+        ..setButtonPositionNormalX(2)
+        ..setButtonPositionNormalY(1)
+        ..setHotkeyNormal("F")
+        ..setName(Revive.self_name)
+        ..setHeroAbility(false)
+        ..setRequiredLevel(1)
+        ..setBuffs(1, "")
+        ..setDurationHero(1, Revive.channel_time)
+        ..setDurationNormal(1, Revive.channel_time)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Revive" + Color_Define.COLOR_HOT_KEY + "(F)")
+        ..setTooltipNormalExtended(1, Revive.desc)
+        ..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNResurrection.blp")
+        ..setArtTarget("Abilities\\Spells\\Human\\Heal\\HealTarget.mdl")
+    destroy ed

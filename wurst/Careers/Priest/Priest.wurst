@@ -1,0 +1,76 @@
+package Priest
+
+import public PlayerUnitHelper
+
+import public PriestSkill
+import EditorHelper
+import PlayerUnit
+
+public class Priest extends PlayerUnit
+    static let model_file = "units\\human\\Priest\\Priest"
+
+    construct(player pl, unit u)
+        super(pl, u)
+        career_type_ = priest
+        init_self()
+        listen_all()
+        //u.hideAbility('prbk', true)
+
+    override function init_self() 
+        skill_list_.add(new Heal(uself_))
+        skill_list_.add(new PowerInfusion(uself_))
+        // skill_list_.add(new HolyWordShield(uself_))
+        skill_list_.add(new HolyNova(uself_))
+        skill_list_.add(new HolyMissile(uself_))
+        skill_list_.add(new DivineAegis(uself_))
+        skill_list_.add(new Revive(uself_))
+
+    override function refresh()
+        super.refresh()
+        uself_..removeAbility(PowerInfusion.self_id)..addAbility(PowerInfusion.self_id)
+            ..removeAbility(HolyNova.self_id)..removeAbility(HolyNova.help_id)..addAbility(HolyNova.self_id)
+            ..removeAbility(DivineAegis.self_id)..addAbility(DivineAegis.self_id)
+            ..removeAbility(HolyMissile.self_id)..addAbility(HolyMissile.self_id)
+            ..removeAbility(Revive.self_id)..addAbility(Revive.self_id)
+
+@compiletime
+function create_priest()
+    let editor = EditorHelper.create_template_hero(PRIEST)
+    let skill_code_list = Heal.self_id.toRawCode() + "," + PowerInfusion.self_id.toRawCode()
+        + "," + HolyWordShield.self_id.toRawCode() +"," + HolyNova.self_id.toRawCode()
+        +"," + HolyMissile.self_id.toRawCode()+"," + DivineAegis.self_id.toRawCode()
+        +"," + Revive.self_id.toRawCode() +
+        ",prau,AInv,bAnA"
+
+    editor..setNormalAbilities(skill_code_list)
+        ..setUnitSoundSet("Priest")
+        ..setProperNames(Color_Define.COLOR_PRIEST + "牧师")
+        ..setName("牧师")
+        ..setModelFile(Priest.model_file)
+        ..setArtSpecial(Priest.model_file)
+        ..setAttack1ProjectileArt("Abilities\\Weapons\\DruidoftheTalonMissile\\DruidoftheTalonMissile.mdl")
+        ..setAttack1AttackType(AttackType.Magic)
+        ..setPrimaryAttribute("INT")
+        ..setManaMaximum(300)
+        ..setManaInitialAmount(300)
+    destroy editor
+
+@compiletime
+function create_pr_au()
+    let editor = EditorHelper.create_aura('prau')
+    editor..setArtTarget("")
+        ..setName("pr")
+        ..setBuffs(1, "prid")
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(-11)
+    destroy editor
+
+@compiletime
+function create_pr_id()
+    let editor = new BuffDefinition('prid', 'Bdet')
+    editor..setName(1, "Priest")
+        ..setTooltipNormal(1, Color_Define.COLOR_NORMAL + "Priest")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_PRIEST + "You are an angel!")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\PR.blp")
+    destroy editor
+

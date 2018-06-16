@@ -1,0 +1,78 @@
+package IceMage
+
+import public PlayerUnitHelper
+import public IceMageSkill
+import EditorHelper
+import PlayerUnit
+
+public class IceMage extends PlayerUnit
+    static let model_file = "units\\human\\Sorceress\\Sorceress_V1.mdl"
+
+    unit ice_image_unit_ = null
+    construct(player pl, unit u)
+        super(pl, u)
+        career_type_ = ice_mage
+        init_self()
+        listen_all()
+        //u.hideAbility('imbk', true)
+
+    override function init_self() 
+        skill_list_.add(new IceBarrier(uself_))
+        skill_list_.add(new IceLance(uself_))
+        skill_list_.add(new IceStomp(uself_))
+        skill_list_.add(new FrostBolt(uself_))
+        skill_list_.add(new IceSpirit(uself_))
+        skill_list_.add(new IceImage(uself_))
+        skill_list_.add(new IceShield(uself_))
+
+    override function refresh()
+        super.refresh()
+        uself_..removeAbility(IceBarrier.self_id)..addAbility(IceBarrier.self_id)
+            ..removeAbility(IceLance.self_id)..removeAbility(IceLance.help_id)..addAbility(IceLance.self_id)
+            ..removeAbility(IceImage.self_id)..addAbility(IceImage.self_id)
+            ..removeAbility(IceShield.self_id)..addAbility(IceShield.self_id)
+            ..removeAbility(IceStomp.self_id)..addAbility(IceStomp.self_id)
+
+@compiletime
+function create_ice_mage()
+    let editor = EditorHelper.create_template_hero(ICE_MAGE)
+    let skill_code_list = FrostBolt.self_id.toRawCode() + "," + IceStomp.self_id.toRawCode() + "," +
+        IceLance.self_id.toRawCode() + "," + IceBarrier.self_id.toRawCode() + "," +
+        IceSpirit.self_id.toRawCode() + "," + IceImage.self_id.toRawCode() + "," + 
+        IceShield.self_id.toRawCode() +
+        ",imau,AInv,bAnA"
+
+    editor..setNormalAbilities(skill_code_list)
+        ..setUnitSoundSet("Sorceress")
+        ..setProperNames(Color_Define.COLOR_ICEMAGE + "冰法")
+        ..setName("冰法")
+        ..setModelFile(IceMage.model_file)
+        ..setArtSpecial(IceMage.model_file)
+        ..setAttack1ProjectileArt("Abilities\\Weapons\\ZigguratFrostMissile\\ZigguratFrostMissile.mdl")
+        ..setAttack1AttackType(AttackType.Magic)
+        ..setPrimaryAttribute("INT")
+    destroy editor
+
+@compiletime
+function create_im_au()
+    let editor = EditorHelper.create_aura('imau')
+    editor..setArtTarget("")
+        ..setName("im")
+        ..setBuffs(1, "imid")
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(-11)
+    destroy editor
+
+@compiletime
+function create_im_id()
+    let editor = new BuffDefinition('imid', 'Bdet')
+    editor..setName(1, "IceMage")
+        ..setTooltipNormal(1, Color_Define.COLOR_NORMAL + "Ice Mage")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_ICEMAGE + "You are the master of ice!")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\IM.blp")
+    destroy editor
+
+// @compiletime
+// function create_im_mgbk()
+//     var ed = EditorHelper.create_magic_book('imbk', "imau")
+//     destroy ed

@@ -1,0 +1,117 @@
+package IceImage
+
+import IceMage
+import EditorHelper
+import GlobalDefines
+import TriggerHelper
+import TimerUtils
+import SkillHelper
+import SoundHelper
+import Orders
+
+public class IceImage extends IceMageSkill
+    static let self_id = 'im0g'
+    static let faker_skill_id = 'im1g'
+    static let self_name = "Image"
+    static let last_time = 10.
+    static let cool_down = 22.
+    static let mana_cost = 44
+    static let image_dmg_recv_per = 1.
+    static let image_dmg_per = 1.
+    static let desc = Color_Define.COLOR_NORMAL +
+        "↑产生一个自己的幻象，跟随自己一起释放技能。幻象受到{0}%的伤害，造成{0}%的伤害。|n".format((image_dmg_recv_per*100).toString(0), (image_dmg_per*100).toString(0)) +
+        Color_Define.COLOR_WARNING + "★幻象造成的伤害归冰法本体所有。|n" + 
+        Color_Define.COLOR_LAST_TIME + "→持续时间：{0}s|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    private unit faker_ = null
+    private unit summon_ = null
+    private trigger image_death_trigger_ = null
+    private timer timer_ = null
+    construct(unit u)
+        super(u)
+
+    ondestroy
+        clear()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceImage.self_id))
+            ..addAction(function IceImage.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo IceImage
+        self.faker_ = createUnit(self.owner_.getOwner(), FAKE_CASTER, self.owner_.getPos(), angle(0))
+        self.faker_.addAbility(IceImage.faker_skill_id)
+        CreateTrigger()..setData(self castTo int)
+            ..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SUMMON)
+            ..addAction(function IceImage.on_summon)
+        self.faker_.issueTargetOrderById(SpecialOrders.wandOfIllusion, self.owner_)
+        SoundPlayer.scroll(self.owner_.getPos3Real())
+        flashEffect("scrollblue.mdx", self.owner_.getPos())
+
+    static function on_summon()
+        let current_trigger = GetTriggeringTrigger()
+        let self = current_trigger.getData() castTo IceImage
+        if GetSummoningUnit() != self.faker_
+            return
+        let summoned_unit = GetSummonedUnit()
+        self.summon_ = summoned_unit
+        summoned_unit.removeAbility('Aatk')
+        (PlayerUnitHelper.get_instance(self.owner_) castTo IceMage).ice_image_unit_ = summoned_unit
+
+        self.timer_ = getTimer()
+        self.timer_..setData(current_trigger.getData())
+            ..start(last_time, function on_image_expired)
+        self.image_death_trigger_ = CreateTrigger()..setData(current_trigger.getData())
+            ..registerUnitEvent(summoned_unit, EVENT_UNIT_DEATH)
+            ..addAction(function on_image_die)
+        RemoveUnit(self.faker_)
+        self.faker_ = null
+        current_trigger..disable()..destr()
+
+    static function on_image_expired()
+        (GetExpiredTimer().getData() castTo IceImage).clear()
+
+    static function on_image_die()
+        (GetTriggeringTrigger().getData() castTo IceImage).clear()
+
+    override function clear()
+        if summon_ != null
+            flashEffect("Objects\\Spawnmodels\\NightElf\\NECancelDeath\\NECancelDeath.mdl", summon_.getPos())
+            RemoveUnit(summon_)
+            summon_ = null
+            (PlayerUnitHelper.get_instance(owner_) castTo IceMage).ice_image_unit_ = null
+            image_death_trigger_..disable()..destr()
+            if timer_ != null
+                timer_.release()
+                timer_ = null
+
+@compiletime
+function create_ice_image()
+    let editor = EditorHelper.create_channel_template(IceImage.self_id, emSkillKey.G)
+    editor..setManaCost(1, IceImage.mana_cost)
+        ..setCooldown(1, IceImage.cool_down)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(1)
+        ..setHotkeyNormal("G")
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(IceImage.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Image" +
+            Color_Define.COLOR_HOT_KEY + "(G)")
+        ..setTooltipNormalExtended(1, IceImage.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\img.blp")
+    destroy editor
+
+@compiletime
+function create_image_skill()
+    let editor = new AbilityDefinitionItemIllusion(IceImage.faker_skill_id)
+    editor..setDamageReceivedMultiplier(1, IceImage.image_dmg_recv_per)
+        ..setDamageDealtofnormal(1, IceImage.image_dmg_per)
+        ..setDurationHero(1, 100)
+        ..setDurationNormal(1, 100)
+        ..setCooldown(1, 0)
+        ..setCastRange(1, 99999)
+    destroy editor

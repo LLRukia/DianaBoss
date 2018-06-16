@@ -1,0 +1,40 @@
+package WarlockKingCreator
+
+import EditorHelper
+import WarlockKing
+import IBoss
+
+@compiletime
+function create_1()
+    var ed = EditorHelper.create_boss_ranged(WarlockKing.self_id)
+    
+    ed..setNormalAbilities(BOSS_RESISTANCE_MAGIC_ID.toRawCode() + "," + BOSS_RESISTANCE_PIERCE_ID.toRawCode() + "," +BOSS_MANA_RECOVERY_ID.toRawCode())
+    ..setModelFile("units\\undead\\Kelthuzad\\Kelthuzad")
+    ..setAttack1DamageBase(249)
+    ..setManaMaximum(800)
+    ..setHitPointsMaximumBase(18000)
+    ..setName(WarlockKing.self_name)
+
+
+@compiletime
+function create_Aegr()
+    var ed = new AbilityDefinitionElunesGrace(BOSS_RESISTANCE_MAGIC_ID)
+
+    for i = 0 to 7
+        ed..setChancetoDeflect(i+1, 0.)
+        ..setDeflectDamageTakenSpells(i+1, 0.)
+        ..setDeflectDamageTakenPiercing(i+1, 0.)
+        ..setMagicDamageReduction(i+1, RESISTANCE_LEVEL[i])
+        ..setDamageTaken(i+1, 1)
+    destroy ed
+
+    ed = new AbilityDefinitionElunesGrace(BOSS_RESISTANCE_PIERCE_ID)
+
+    for i = 0 to 7
+        ed..setChancetoDeflect(i+1, 0.)
+        ..setDeflectDamageTakenSpells(i+1, 0.)
+        ..setDeflectDamageTakenPiercing(i+1, 0.)
+        ..setMagicDamageReduction(i+1, 1.)
+        ..setDamageTaken(i+1, RESISTANCE_LEVEL[i])
+    destroy ed
+    

@@ -1,0 +1,74 @@
+package Main
+import GlobalDefines
+import DialogBox
+import ClosureTimers
+import SoundHelper
+import ProcessControl
+
+function after_mode_chose()
+    ClearTextMessages()
+    doAfter(1.)->
+        game_start()
+        CreateFogModifierRect(players[0], FOG_OF_WAR_VISIBLE, gg_rct_PICK, true, false).start()
+
+function easy_mode()
+    CUR_MODE = 0
+    printTimed("|cff02DF82简单难度已选择，Boss将不再会释放一些危险技能，并且技能释放间隔长。|rBoss不再具有抗性。每关结束后你将会获得一个复活。|r|cffAD5A5A你们没有办法挑战完整的关卡。" , 10.)
+    SoundPlayer.goblin_laugh()
+    player_board.set_title("|cff02DF82简单")
+
+function normal_mode()
+    CUR_MODE = 1
+    printTimed("|cff00E3E3一般难度已选择，Boss会释放一些危险技能，但技能释放间隔较长。|rBoss不再具有抗性。每关结束后你将会获得一个复活。|r|cffAD5A5A你们没有办法挑战完整的关卡。" , 10.)
+    SoundPlayer.ding()
+    player_board.set_title("|cff00E3E3一般")
+
+function hard_mode()
+    CUR_MODE = 2
+    printTimed("|cff9393FF困难难度已选择，Boss会释放一些危险技能，技能释放间隔较短。|rBoss具有抗性。偶数关结束后你将会获得一个复活，并且可携带复活的上限变为2。|r|cffAD5A5A你们没有办法挑战完整的关卡。" , 10.)
+    SoundPlayer.ding()
+    player_board.set_title("|cff9393FF困难")
+
+function insane_mode()
+    CUR_MODE = 3
+    printTimed("|cff9393FF疯狂难度已选择，Boss会释放一些危险技能，技能释放间隔短。|rBoss具有抗性。偶数关结束后你将会获得一个复活，并且可携带复活的上限变为1。|r|cffAD5A5A你们没有办法挑战完整的关卡。" , 10.)
+    SoundPlayer.ding()
+    player_board.set_title("|cff9393FF疯狂")
+
+function impossible_mode()
+    CUR_MODE = 4
+    printTimed("|cff9393FF不可能的难度已选择，Boss会释放一些危险技能，技能释放间隔短。|rBoss具有高抗性。不可以携带复活。|r|cffAD5A5A迎接噩梦吧，这才是Boss的完全体。" , 10.)
+    SoundPlayer.demon_laugh()
+    player_board.set_title("|cff9393FF必败")
+
+init
+    FogMaskEnableOn()
+    doAfter(0) -> 
+        let mode = new DialogBox("难度选择")
+        mode.addButton("Easy", 49) ->
+            after_mode_chose()
+            easy_mode()
+            destroy mode
+        mode.addButton("Normal", 50) ->
+            after_mode_chose()
+            normal_mode()
+            destroy mode
+        mode.addButton("Hard", 51) ->
+            after_mode_chose()
+            hard_mode()
+            destroy mode
+        mode.addButton("Insane", 52) ->
+            after_mode_chose()
+            insane_mode()
+            destroy mode
+        mode.addButton("Impossible", 53) ->
+            after_mode_chose()
+            impossible_mode()
+            destroy mode
+        printTimed(players[0].getColor().toColor().toColorString() + GetPlayerName(players[0]) + Color_Define.COLOR_NORMAL + "正在选择难度...", 15.)
+        mode.display(players[0], true)
+
+    for i = 0 to PLAYER_NUM-1
+        if players[i].isIngame()
+            players[i]..setCameraBoundsToRect(PICK_RECT)
+                      ..panCameraToTimed(PICK_RECT.getCenter(), 0)

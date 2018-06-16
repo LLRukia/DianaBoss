@@ -1,0 +1,46 @@
+package MsgQueue
+
+import NoWurst
+import Printing
+import LinkedList
+import IBossSkill
+
+let PRIORITY_DECA = 0.65
+
+constant Comparator<IBossSkill> boss_skill_com = (lhs, rhs) -> R2I(rhs.priority - lhs.priority)
+
+//ez priority queue
+public class MsgQueue
+    private var queue = new LinkedList<IBossSkill>
+
+    private function sort()
+        queue.sortWith(boss_skill_com)
+
+    function get_judge() returns IBossSkill
+        sort()
+        for i in queue
+            print(R2S(i.priority))
+        for i in queue
+            if i.judge()
+                i.priority = 0
+                return i
+            else
+                i.priority *= PRIORITY_DECA
+        return null
+
+    function add_skill(IBossSkill s)
+        queue.add(s)
+                
+    function run()
+        for i in queue
+            i.detect()
+
+    function pause()
+        for i in queue
+            i.stop_detect()
+
+    function clear()
+        for i in queue
+            i.stop_detect()
+        queue.clear()
+        

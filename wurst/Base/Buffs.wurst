@@ -1,0 +1,122 @@
+package Buffs
+
+import HashMap
+import PlayerUnitHelper
+import initlater PlayerUnit
+
+
+public enum BuffClearType
+    mutable         //
+    additions       //"D" can remove
+    stable          //"D" cannot remove but "purge" can
+    inherent        //permanent exist
+
+public enum BuffType
+    debuffs         //--
+    buffs           //++
+
+class Buff
+    protected int buff_id_
+    protected BuffClearType buff_clear_type_
+    protected BuffType buff_type_
+    protected IBaseSkills skill_
+    construct(int id, BuffClearType buff_clear_type, BuffType buff_type, IBaseSkills skill_obj)
+        buff_id_ = id
+        buff_clear_type_ = buff_clear_type
+        buff_type_ = buff_type
+        skill_ = skill_obj
+    ondestroy
+
+
+public class Buffs
+    protected var buff_map_ = new IterableMap<int, Buff>
+    protected unit owner_unit_
+    construct(unit u)
+        owner_unit_ = u
+
+    function add_buff(int id, BuffClearType buff_clear_type, BuffType buff_type, IBaseSkills skill_obj)
+        // delete old first
+        if buff_map_.has(id)
+            buff_map_.get(id).skill_.on_buff_removed(owner_unit_)
+            buff_map_.remove(id)
+        let buff_obj = new Buff(id, buff_clear_type, buff_type, skill_obj)
+        buff_map_.put(id, buff_obj)
+
+    function remove_buff(BuffClearType buff_clear_type, BuffType buff_type)
+        for buff_id in buff_map_
+            let buff_obj = buff_map_.get(buff_id)
+            if buff_obj.buff_type_ == buff_type
+                if buff_map_.get(buff_id).buff_clear_type_ castTo int <= buff_clear_type castTo int
+                    owner_unit_.removeAbility(buff_obj.buff_id_)
+                    buff_obj.skill_.on_buff_removed(owner_unit_)
+                    buff_map_.remove(buff_id)
+                    destroy buff_obj
+
+    function remove_buff(int buff_id)
+        if buff_map_.has(buff_id)
+            let buff_obj = buff_map_.get(buff_id)
+            owner_unit_.removeAbility(buff_id)
+            buff_obj.skill_.on_buff_removed(owner_unit_)
+            buff_map_.remove(buff_id)
+            destroy buff_obj
+
+    function has_buff(int id) returns bool
+        return buff_map_.has(id)
+
+public function unit.add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills ins)
+    let handle_id = PlayerUnitHelper.get_instance(this)
+    if handle_id == -1
+        return
+    else
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj == null
+            Log.error("add_buff error, player is null")
+            return
+        player_obj.add_buff(id, cltp, tp, ins)
+
+public function unit.remove_buff(int id) returns boolean
+    let handle_id = PlayerUnitHelper.get_instance(this)
+    if handle_id == -1
+        this.removeAbility(id)
+        return false
+    else
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj == null
+            Log.error("remove_buff error, player is null")
+            return false
+        player_obj.remove_buff(id)
+        return true
+
+public function unit.remove_buff(BuffClearType cltp, BuffType tp)
+    let handle_id = PlayerUnitHelper.get_instance(this)
+    if handle_id == -1
+        return
+    else
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj == null
+            Log.error("remove_buff(with type) error, player is null")
+            return
+        player_obj.remove_buff(cltp, tp)
+
+public function unit.can_add_buff() returns boolean
+    let handle_id = PlayerUnitHelper.get_instance(this)
+    if handle_id == -1
+        return true
+    else
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj == null
+            Log.error("can_add_buff error, player is null")
+            return false
+        return not player_obj.is_invulnerable()
+
+public function unit.has_buff(int buff_id) returns bool
+    let handle_id = PlayerUnitHelper.get_instance(this)
+    if handle_id == -1
+        Log.debug("has buff fallback unit: {0}, buff_id: {1}".format(this.getName(), buff_id.toString()))
+        return this.hasAbility(buff_id)
+    else
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj == null
+            Log.error("has_buff error, player is null")
+            return false
+        return player_obj.has_buff(buff_id)

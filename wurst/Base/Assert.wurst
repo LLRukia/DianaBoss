@@ -1,0 +1,6 @@
+package Assert
+
+public function assert(bool pred, string msg) returns bool
+    if not pred
+        Log.error(msg)
+    return not pred

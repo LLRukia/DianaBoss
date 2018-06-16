@@ -1,0 +1,203 @@
+package SoundUtils
+import NoWurst
+import public Sounds
+import LinkedList
+import Simulate3dSound
+import TimerUtils
+import Sound
+import Basics
+import Vectors
+import ErrorHandling
+
+constant DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
+constant DEFAULT_SOUND_FADE_IN_RATE = 10
+constant DEFAULT_SOUND_FADE_OUT_RATE = 10
+constant DEFAULT_SOUND_EAX_SETTINGS = "CombatSoundsEAX"
+constant DEFAULT_SOUND_VOLUME = 127
+constant DEFAULT_SOUND_PITCH = 1.
+constant DEFAULT_SOUND_DURATION = 10000
+
+constant SOUND_CHANNEL = 5
+constant SOUND_MIN_DIST = 600.
+constant SOUND_MAX_DIST = 8000.
+constant SOUND_DIST_CUT = 1500.
+
+//global volume
+public real VOLUME = 1.0
+
+public class SoundInstance
+	var pos = ZERO3
+	sound snd
+	SoundDefinition soundDef
+	unit onUnit = null
+	player p = null
+	Sim3DSound s3s = null
+
+public class SoundDefinition
+	constant soundStack = new LinkedList<SoundInstance>()
+
+	string file
+	int duration = 10000
+	boolean looping
+	boolean is3D = false
+	boolean stopOnLeaveRange = false
+	int fadeIn = DEFAULT_SOUND_FADE_IN_RATE
+	int fadeOut = DEFAULT_SOUND_FADE_OUT_RATE
+	string eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
+
+	construct(string file, boolean looping)
+		this.file = file
+		this.looping = looping
+
+	construct(string file, boolean looping, boolean is3D)
+		this.file = file
+		this.looping = looping
+		this.is3D = is3D
+
+	private function getSound() returns SoundInstance
+		if soundStack.size() > 0
+			let shandle = soundStack.pop()
+			shandle.snd..setVolume((DEFAULT_SOUND_VOLUME * VOLUME).toInt())..setPitch(DEFAULT_SOUND_PITCH)..setChannel(SOUND_CHANNEL)
+			return shandle
+		else
+			// No free handle, create a new one
+			var sdata = new SoundInstance()
+			sdata.snd = CreateSound(this.file, this.looping, this.is3D, this.stopOnLeaveRange, this.fadeIn, this.fadeOut, this.eaxSetting)
+			sdata.soundDef = this
+
+			sdata.snd..setDuration(this.duration)
+			..setChannel(SOUND_CHANNEL)
+			..setVolume((DEFAULT_SOUND_VOLUME * VOLUME).toInt())
+			..setPitch(DEFAULT_SOUND_PITCH)
+
+			if is3D
+				SetSoundDistances(sdata.snd, SOUND_MIN_DIST, SOUND_MAX_DIST)
+				SetSoundDistanceCutoff(sdata.snd, SOUND_DIST_CUT)
+				SetSoundConeAngles(sdata.snd, 0, 0, (DEFAULT_SOUND_VOLUME * VOLUME).toInt())
+				SetSoundConeOrientation(sdata.snd, 0, 0, 0)
+
+			return sdata
+
+	/** Plays this sound for all Players with a default duration.
+		Use this if you don't care when the SoundHandle gets recycled.	*/
+	function play() returns SoundInstance
+		return play(DEFAULT_SOUND_DURATION)
+
+	/** Plays this sound for all Players with the given duration.
+		The duration should be close to the length of the soundfile.
+		Use this to recycle soundhandles immeditely when they finish,
+		allowing for rapid succession of sounds.	*/
+	function play(int duration) returns SoundInstance
+		this.duration = duration
+		let snd = getSound()
+		getTimer()
+			..setData(snd castTo int)
+			..start(0., function SoundDefinition.playSound)
+		return snd
+
+	/** Plays this sound for the given Player with a default duration.
+		See play() for more info */
+	function playForPlayer(player p) returns SoundInstance
+		return playForPlayer(p, DEFAULT_SOUND_DURATION)
+
+	/** Plays this sound for the given Player with the given duration.
+		See play() for more info */
+	function playForPlayer(player p, int duration) returns SoundInstance
+		this.duration = duration
+		var snd = getSound()
+		snd.p = p
+		getTimer()
+			..setData(snd castTo int)
+			..start(0., function SoundDefinition.playSound)
+		return snd
+
+	function playOnPoint(vec3 target)  returns SoundInstance
+		return playOnPoint(target, DEFAULT_SOUND_DURATION)
+
+	function playOnPoint(vec3 target, int duration)  returns SoundInstance
+		this.duration = duration
+		var snd = getSound()
+		snd.pos = target
+		getTimer()
+			..setData(snd castTo int)
+			..start(0., function SoundDefinition.playSound)
+		return snd
+
+	private static function playSound()
+		var tm = GetExpiredTimer()
+		var sdata = tm.getData() castTo SoundInstance
+		if sdata.onUnit != null
+			AttachSoundToUnit(sdata.snd, sdata.onUnit)
+		if sdata.pos.x != 0 and sdata.pos.y != 0
+			SetSoundPosition(sdata.snd, sdata.pos.x, sdata.pos.y, sdata.pos.z)
+		if sdata.p != null
+			if GetLocalPlayer() == sdata.p
+				StartSound(sdata.snd)
+		else
+			StartSound(sdata.snd)
+		tm.release()
+		getTimer()
+			..setData(sdata castTo int)
+			..start(sdata.soundDef.duration * 0.001, function SoundDefinition.recycle)
+
+	private static function recycle()
+		var tm = GetExpiredTimer()
+		var sdata = tm.getData() castTo SoundInstance
+		sdata.p = null
+		if sdata.s3s != null
+			destroy sdata.s3s
+		if sdata.soundDef.soundStack.size() < 4
+			sdata.soundDef.soundStack.push(sdata)
+		else
+			destroy sdata
+
+		tm.release()
+
+// WIP
+public class DynamicSound
+	use TimedLoop
+	real targetPitch = 1.0
+	real currentPitch = 1.0
+	real smoothness = 0.015
+	real minimumLength = 0.5
+
+	SoundInstance soundData = null
+	SoundDefinition soundHandle
+
+	construct(SoundDefinition soundHandle)
+		this.soundHandle = soundHandle
+		this.minimumLength = soundHandle.duration * 0.001
+
+	function setTargetPitch(real pitch)
+		targetPitch = pitch
+
+	function play()
+		soundData = soundHandle.play()
+		setAbsolutePitch(currentPitch)
+		startTimedLoop()
+
+	function setAbsolutePitch(real pitch)
+		if soundData == null
+			error("Must play sound before setting pitch")
+		if not soundData.snd.isPlaying()
+			if pitch == 1
+				soundData.snd.setPitch(1.0001)
+			else
+				soundData.snd.setPitch(pitch)
+		else
+			soundData.snd.setPitch(1 / currentPitch)
+			soundData.snd.setPitch(pitch)
+		currentPitch = pitch
+
+	override function onTimedLoop()
+		if soundData != null
+			setAbsolutePitch(currentPitch.lerp(targetPitch, smoothness))
+			minimumLength -= ANIMATION_PERIOD
+			if not soundData.snd.isPlaying() and minimumLength <= 0
+				stopTimedLoopAndDestroy()
+
+	ondestroy
+		setAbsolutePitch(1)
+		soundData.snd.stop(false, false)
+		setAbsolutePitch(1)
+

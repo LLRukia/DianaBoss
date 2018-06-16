@@ -1,0 +1,58 @@
+package PlayerPick
+import GlobalDefines
+import HashMap
+import PlayerHelper
+import ProcessControl
+
+var pick_unit_to_index_map = new HashMap<unit, int>
+public hashtable click_map = InitHashtable()
+let picked_flag = CAREERS_NUM + 1
+
+function filter_pick() returns boolean
+    return pick_unit_to_index_map.has(GetTriggerUnit())
+
+function pick()
+    let pl = GetTriggerPlayer()
+    let player_id = GetPlayerId(pl)
+    let unit_index = pick_unit_to_index_map.get(GetTriggerUnit())
+    let click_times = LoadInteger(click_map, player_id, unit_index)
+    let choosed = LoadBoolean(click_map, player_id, picked_flag)
+    if choosed
+        return
+    if click_times == 0
+        FlushChildHashtable(click_map, player_id)
+        SaveInteger(click_map, player_id, unit_index, 1)
+    else if click_times == 1
+        pl.pick(unit_index)
+
+public function player.pick(int index)
+    let u = createUnit(this, PICK_UNITS[index], BORN_RECT.getCenter(), angle(270))
+    printTimed(this.getName() + "选择了" + CAREER_COLORS[index] + u.getName(), 4)
+    this..init_self(u, PICK_CAREERS[index])
+        ..setCameraBoundsToRect(BORN_RECT)
+        ..panCameraToTimed(BORN_RECT.getCenter(), 0)
+        ..setCameraField(CAMERA_FIELD_FIELD_OF_VIEW, 95., 0)
+        ..setCameraField(CAMERA_FIELD_TARGET_DISTANCE, 2500., 0)
+        ..selectSingle(u)
+        ..setName(this.getName() + "(" + GetUnitName(u) + ")")
+
+    player_board.refresh_career(this.getId())
+    FlushChildHashtable(click_map, this.getId())
+    SaveBoolean(click_map, this.getId(), CAREERS_NUM + 1, true)
+
+init
+    let g = CreateGroup()
+    g.enumUnitsInRect(PICK_RECT)
+    int index = 0
+    for i in g
+        if index == CAREERS_NUM
+            break
+        pick_unit_to_index_map.put(createUnit(Player(PLAYER_NEUTRAL_PASSIVE), PICK_UNITS[index], i.getPos()+POS_CORRECTION, bj_UNIT_FACING.asAngleDegrees()), index)
+        index++
+    g.destr()
+
+    let tr = CreateTrigger()
+    for i = 0 to PLAYER_NUM-1
+        tr.registerPlayerUnitEvent(Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+    tr..addCondition(Filter(function filter_pick))
+    ..addAction(function pick)

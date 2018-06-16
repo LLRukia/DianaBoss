@@ -1,0 +1,53 @@
+package Heal
+
+import Priest
+import EditorHelper
+import GlobalDefines
+
+public class Heal extends PriestSkill
+    static let self_id = 'pr0q'
+    static let self_name = "Heal"
+    static let dmg = 488.
+    static let inc = 12.
+    static let range = 1300.
+    static let cool_down = 1.
+    static let mana_cost = 18
+    static let desc = Color_Define.COLOR_NORMAL + "→治疗目标{0}生命|n".format(dmg.toString(1)) +
+        Color_Define.COLOR_PRIEST + "↑ {0}%法术强度额外治疗|n".format((inc*100).toString(0)) +
+        Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==Heal.self_id))
+            ..addAction(function Heal.cast)
+
+    static function cast()
+        let caster = GetSpellAbilityUnit()
+        let final_dmg = GetHeroAgi(caster, true) * Heal.inc + Heal.dmg
+        let target = GetSpellTargetUnit()
+        let prev_hp = target.getHP()
+        target.setHP(prev_hp + final_dmg)
+        StatisticsHelper.add_real(caster.getOwner(), prev_hp - target.getHP())
+
+@compiletime
+function create_heal()
+    let editor = EditorHelper.create_channel_template(Heal.self_id, emSkillKey.Q)
+    editor..setCastRange(1, Heal.range)
+        ..setManaCost(1, Heal.mana_cost)
+        ..setCooldown(1, 1)
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("Q")
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ALLY)
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setName(Heal.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Heal" + Color_Define.COLOR_HOT_KEY + "(Q)")
+        ..setTooltipNormalExtended(1, Heal.desc)
+        ..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNHeal.blp")
+        ..setArtTarget("Abilities\\Spells\\Human\\Heal\\HealTarget.mdl")
+
+    destroy editor

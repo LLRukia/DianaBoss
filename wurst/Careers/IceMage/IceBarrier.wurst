@@ -1,0 +1,206 @@
+package IceBarrier
+import IceMage
+import TimerUtils
+import HashMap
+import TriggerHelper
+import EditorHelper
+import ProgressBar
+import PlayerUnit
+
+class IceBarrierProxy
+    construct(IceBarrier s, unit ut)
+        owner = s
+        target = ut
+        last_timer = getTimer()
+        shiled_remain = IceBarrier.shield_hp
+        dmg_listener = CreateTrigger()
+        death_listener = CreateTrigger()
+        display = new ProgressBar(target, shiled_remain)
+        display.set_cur_value(shiled_remain)
+    
+    ondestroy
+        last_timer.release()
+        destroy display
+        dmg_listener..disable()..destr()
+        death_listener..disable()..destr()
+
+    function init_self()
+        target.add_buff(IceBarrier.buff_id, BuffClearType.stable, BuffType.buffs, owner)
+
+        last_timer..setData(this castTo int)
+            ..start(IceBarrier.last_time, function IceBarrierProxy.on_buff_expired)
+
+        dmg_listener..registerUnitEvent(target, EVENT_UNIT_DAMAGED)
+            ..addAction(function IceBarrierProxy.on_dmg)
+            ..setData(this castTo int)
+        
+        death_listener..registerUnitEvent(target, EVENT_UNIT_DEATH)
+            ..addAction(function IceBarrierProxy.on_target_die)
+            ..setData(this castTo int)
+    
+    function refresh()
+        if last_timer != null
+            last_timer.pause()
+            shiled_remain = IceBarrier.shield_hp
+            display.set_cur_value(shiled_remain)
+            last_timer.start(IceBarrier.last_time, function IceBarrierProxy.on_buff_expired)
+
+    static function on_dmg()
+        let self = GetTriggeringTrigger().getData() castTo IceBarrierProxy
+        let handle_id = PlayerUnitHelper.get_instance(self.target)
+        let player_obj = handle_id castTo PlayerUnit
+        if player_obj.is_invulnerable()
+            return
+        let damage = GetEventDamage()
+        if damage <= 0
+            return
+
+        if self.shiled_remain <= damage
+            EXSetEventDamage(damage - self.shiled_remain)
+            if not self.target.remove_buff(IceBarrier.buff_id)
+                Log.warn("IceBarrierProxy expired but {0} remove buff failed".format(self.target.getName()))
+                destroy self
+        else
+            EXSetEventDamage(0)
+            self.shiled_remain -= damage
+            self.display.set_cur_value(self.shiled_remain)
+
+    static function on_buff_expired()
+        let self = GetExpiredTimer().getData() castTo IceBarrierProxy
+        if self != null
+            if not self.target.remove_buff(IceBarrier.buff_id)
+                Log.warn("IceBarrierProxy expired but {0} remove buff failed".format(self.target.getName()))
+                destroy self
+
+    static function on_target_die()
+        let self = GetTriggeringTrigger().getData() castTo IceBarrierProxy
+        if self != null
+            if not self.target.remove_buff(IceBarrier.buff_id)
+                Log.warn("{0} dies but remove buff failed".format(self.target.getName()))
+                destroy self
+
+    IceBarrier owner
+    unit target
+    timer last_timer
+    ProgressBar display
+    real shiled_remain
+    trigger dmg_listener
+    trigger death_listener
+
+
+public class IceBarrier extends IceMageSkill
+    static let self_id = 'im0r'
+    static let buff_id = 'im1r'
+    static let self_name = "IceBarrier"
+    static let shield_hp = 750.
+    static let last_time = 45.
+    static let range = 1000.
+    static let cool_down = 7.
+    static let mana_cost = 51
+    static let desc = Color_Define.COLOR_NORMAL + "↑给目标施加寒冰屏障，可以为目标吸收最大{0}点伤害。|n".format(shield_hp.toString(1)) +
+        Color_Define.COLOR_WARNING + "★可驱散部分魔法效果|n" +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒。|n".format(last_time.toString(1)) +
+        Color_Define. COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    static var barriers_map = new IterableMap<unit, IceBarrierProxy>
+    private var target_judge_trigger_ = CreateTrigger()
+
+    construct(unit u)
+        super(u)
+    
+    ondestroy
+        clear()
+
+    override function clear()
+        for i in barriers_map
+            let proxy = barriers_map.get(i)
+            if not proxy.target.remove_buff(buff_id)
+                destroy proxy
+        barriers_map.flush()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceBarrier.self_id))
+            ..addAction(function IceBarrier.cast)
+            ..setData(this castTo int)
+        target_judge_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_CHANNEL)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceBarrier.self_id))
+            ..addAction(function IceBarrier.target_judge)
+            ..setData(this castTo int)
+    
+    static function target_judge()
+        let self = GetTriggeringTrigger().getData() castTo IceBarrier
+        let target = GetSpellTargetUnit()
+        if PlayerUnitHelper.get_instance(target) == -1
+            printTimedToPlayer(Color_Define.COLOR_ICEMAGE + "请对友方英雄释放。", 2, self.owner_.getOwner())
+            self.owner_.issueImmediateOrder("stop")
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo IceBarrier
+        let target = GetSpellTargetUnit()
+        target.remove_buff(BuffClearType.additions, BuffType.debuffs)
+        if target.has_buff(IceBarrier.buff_id)
+            self.refresh_ice_barrier(target)
+        else
+            self.new_ice_barrier(target)
+
+    function new_ice_barrier(unit target)
+        if target.has_buff(IceBarrier.buff_id)
+            Log.error("IceBarrier should refresh but start")
+            return
+
+        let proxy = new IceBarrierProxy(this, target)
+        barriers_map.put(target, proxy)
+        proxy.init_self()
+
+    function refresh_ice_barrier(unit u)
+        if not barriers_map.has(u)
+            Log.error("IceBarrier refresh, but cannot find {0}".format(u.getName()))
+            return
+
+        let proxy = barriers_map.get(u)
+        proxy.refresh()
+
+    override function on_buff_removed(unit u)
+        if not barriers_map.has(u)
+            Log.error("fatal error: barriers_map cannot find {0}".format(u.getName()))
+            return
+        let proxy = barriers_map.getAndRemove(u)
+        destroy proxy
+
+@compiletime
+function create_ice_barrier()
+    let editor = new AbilityDefinitionUnholyFrenzycreep(IceBarrier.self_id)
+    editor..setAttackSpeedBonus(1, 0.)
+        ..setDamageperSecond(1, 0.)
+        ..setCastRange(1, IceBarrier.range)
+        ..setManaCost(1, IceBarrier.mana_cost)
+        ..setCooldown(1, IceBarrier.cool_down)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("R")
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ALLY_HERO)
+        ..setName(IceBarrier.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Ice Barrier" +
+            Color_Define.COLOR_HOT_KEY + "(R)")
+        ..setTooltipNormalExtended(1, IceBarrier.desc)
+        ..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNFrostArmor.blp")
+        ..setBuffs(1, IceBarrier.buff_id.toRawCode())
+        ..setDurationHero(1, IceBarrier.last_time)
+        ..setDurationNormal(1, IceBarrier.last_time)
+        
+    destroy editor
+
+@compiletime
+function create_ice_barrier_buff()
+    let editor = new BuffDefinition(IceBarrier.buff_id, 'Bdet')
+    editor..setName(1, "Ice Barrier")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Barrier")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位被寒冰护盾庇护着。")
+        ..setArtTarget(1, "imr.mdx")
+        ..setTargetAttachmentPoint0(1, "chest")
+        ..setIconNormal(1, "ReplaceableTextures\\CommandButtons\\BTNFrostArmor.blp")
+
+    destroy editor

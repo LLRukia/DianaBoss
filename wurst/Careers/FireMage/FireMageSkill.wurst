@@ -1,0 +1,17 @@
+package FireMageSkill
+
+import public Buffs
+import public StatisticsHelper
+
+import BaseSkills
+
+public class FireMageSkill extends IBaseSkills
+    construct(unit caster)
+        super(caster)
+
+
+    override function listen()
+
+    override function on_buff_removed(unit _u)
+
+    override function clear()

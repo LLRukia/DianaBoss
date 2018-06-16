@@ -1,0 +1,21 @@
+package IceMageSkill
+
+import public initlater IceBarrier
+import public initlater IceLance
+import public initlater FrostBolt
+import public initlater IceStomp
+import public initlater IceSpirit
+import public initlater IceImage
+import public initlater IceShield
+import BaseSkills
+
+public class IceMageSkill extends IBaseSkills
+    construct(unit caster)
+        super(caster)
+
+
+    override function listen()
+
+    override function on_buff_removed(unit _u)
+
+    override function clear()

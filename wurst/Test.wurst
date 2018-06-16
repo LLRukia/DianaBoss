@@ -1,0 +1,58 @@
+package Test
+import PlayerHelper
+import PlayerUnitHelper
+import PlayerUnit
+import BossHelper
+import UnitObjEditing
+import Camera
+
+function test_case()
+    GetTriggerPlayer().get_unit().addEffect(GetEventPlayerChatString(), "origin").destr()
+    
+
+    
+@compiletime
+function create_fire_chicken()
+    var ed = new UnitDefinition('frck', 'nech')
+    ed..setNormalAbilities("")
+        ..setCollisionSize(80)
+        ..setScalingValue(4)
+        ..setSpeedBase(0)
+        ..setTurnRate(3)
+        ..setArmorType(ArmorType.Hero)
+        ..setAttacksEnabled(0)
+        ..setHitPointsMaximumBase(10000)
+        ..setHitPointsRegenerationRate(10000.)
+        ..setHitPointsRegenerationType("always")
+        ..setName("火鸡")
+        ..setHideMinimapDisplay(true)
+
+function displaydamage()
+    if GetEventDamage() > -0.000001 and GetEventDamage() < 0.000001
+        return 
+    unit u = GetTriggerUnit()
+    unit pu = GetEventDamageSource()
+    player p = pu.getOwner()
+    
+    real speed = 64 * 0.071 / 128
+    real angle = GetRandomReal(15., 165.)
+    createTTEx(u.getPos3with(30), GetEventDamage().toString(), 9, p.getColor().toColor().withAlpha(255))
+        ..setPermanent(false)
+        ..setFadepoint(2.)
+        ..setLifespan(3.)
+        ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
+    
+
+
+init
+    unit fire_chicken = createUnit(Player(PLAYER_NUM), 'frck', BORN_RECT.getCenter() + vec2(0, 500), angle(270))
+    CreateTrigger()..registerUnitEvent(fire_chicken, EVENT_UNIT_DAMAGED)
+        ..addAction(function displaydamage)
+    
+    var tr = CreateTrigger()
+    for i = 0 to PLAYER_NUM-1
+        tr.registerPlayerChatEvent(Player(i), "", true)
+    tr..addAction(function test_case)
+
+    BossHelper.cur_boss = fire_chicken
+    BossHelper.register_counter(true)

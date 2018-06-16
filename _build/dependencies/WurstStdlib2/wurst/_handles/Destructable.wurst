@@ -1,0 +1,74 @@
+package Destructable
+import NoWurst
+import Vectors
+import Wurstunit
+
+public function createDestructable(int id, vec3 pos, angle direction, real scale, int variation) returns destructable
+	return createDestructable(id, pos.toVec2(), direction, scale, variation)
+
+public function createDestructable(int id, vec2 pos, angle direction, real scale, int variation) returns destructable
+	return CreateDestructable(id, pos.x, pos.y, direction.degrees(), scale, variation)
+
+public function destructable.getPos() returns vec2
+	return vec2(this.getX(), this.getY())
+
+public function destructable.getX() returns real
+	return GetDestructableX(this)
+
+public function destructable.getY() returns real
+	return GetDestructableY(this)
+
+public function destructable.kill()
+	KillDestructable(this)
+
+public function destructable.getTypeId() returns int
+	return GetDestructableTypeId(this)
+
+public function destructable.setAnimation(string anim)
+	SetDestructableAnimation(this, anim)
+
+public function destructable.remove()
+	RemoveDestructable(this)
+
+public function destructable.setInvulnerable(bool flag)
+	SetDestructableInvulnerable(this, flag)
+
+public function destructable.getInvulnerable() returns bool
+	return IsDestructableInvulnerable(this)
+
+public function destructable.setLife(real life)
+	SetDestructableLife(this, life)
+
+public function destructable.getLife() returns real
+	return GetDestructableLife(this)
+
+public function destructable.setMaxLife(real max)
+	SetDestructableMaxLife(this, max)
+
+public function destructable.getMaxLife() returns real
+	return GetDestructableMaxLife(this)
+
+public function destructable.restoreLife(real life, boolean birth)
+	DestructableRestoreLife(this, life, birth)
+
+public function destructable.queueAnimation(string anim)
+	QueueDestructableAnimation(this, anim)
+
+public function destructable.setAnimationSpeed(real speedFactor)
+	SetDestructableAnimationSpeed(this, speedFactor)
+
+public function destructable.show(bool flag)
+	ShowDestructable(this, flag)
+
+public function destructable.getOccluderHeight() returns real
+	return GetDestructableOccluderHeight(this)
+
+public function destructable.setOccluderHeight(real height)
+	SetDestructableOccluderHeight(this, height)
+
+public function destructable.getName() returns string
+	return GetDestructableName(this)
+
+@Test function testDestructables()
+	let destr = createDestructable(0, ZERO2, 0 .fromDeg(), 1, -1)
+	destr.getX().assertEquals(0.)

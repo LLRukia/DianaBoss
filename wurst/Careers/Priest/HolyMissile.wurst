@@ -1,0 +1,136 @@
+package HolyMissile
+
+import Priest
+import TriggerHelper
+import EditorHelper
+import MathHelper
+import GlobalDefines
+import TimerUtils
+import HashMap
+import SoundUtils
+
+public class HolyMissile extends PriestSkill
+    static let self_id = 'pr0r'
+    static let self_name = "HolyMissile"
+    static let radius = 150.
+    static let heal = 4000.
+    static let heal_inc = 50.
+    static let dmg = 250.
+    static let dmg_inc = 25.
+    static let mana_recovery = 70.
+    static let range = 1500.
+    static let cool_down = 45.
+    static let mana_cost = 66
+    static let speed = 125.
+    static let missile_tick_interval = 0.083
+    static let dmg_type = ATTACK_TYPE_MAGIC
+    static let desc =  Color_Define.COLOR_NORMAL + "→向目标点投掷一枚充满圣光的魔法箭矢，对飞行路径上的敌方单位造成{0}伤害".format(dmg.toString(1)) + 
+        "↑为命中的第一名友方英雄回复{0}生命值和{1}魔法值。|n".format(heal.toString(1), mana_recovery.toString(1)) +
+        Color_Define.COLOR_PRIEST + "↑ {0}%法术强度额外伤害，{1}%法术强度额外治疗|n".format((heal_inc*100).toString(0), (dmg_inc*100).toString(0)) +
+        Color_Define. COLOR_CAST_RANGE + "→最大飞行距离{0}|n".format(range.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    static var holyheal = new SoundDefinition(Sounds.restorationPotion, false, true)
+
+    private timer timer_
+    private vec2 cur_pos_
+    private angle fly_ang_
+    private real moved_dis_ = 0
+    private var dmg_once_map_ = new HashMap<unit, boolean>
+
+    construct(unit u)
+        super(u)
+
+    ondestroy
+        destroy dmg_once_map_
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==HolyMissile.self_id))
+            ..addAction(function HolyMissile.cast)
+            ..setData(this castTo int)
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo HolyMissile
+        if self.timer_ != null
+            self.timer_.release()
+
+        self.timer_ = getTimer()
+        let lc = GetSpellTargetLoc()
+        let target_pos = vec2(GetLocationX(lc), GetLocationY(lc))
+        RemoveLocation(lc)
+        self.cur_pos_ = self.owner_.getPos() + POS_CORRECTION
+        self.fly_ang_ = self.cur_pos_.angleTo(target_pos).asAngleDegrees()
+        self.moved_dis_ = 0.
+        self.dmg_once_map_.flush()
+
+        self.timer_..setData(self castTo int)
+            ..startPeriodic(missile_tick_interval, function tick)
+
+    function on_hit_ally(unit u)
+        u.addEffect("prr1.mdx", "origin").destr()
+        holyheal.playOnPoint(u.getPos3Real())
+        let prev_hp = u.getHP()
+        let final_dmg = GetHeroAgi(owner_, true) * HolyMissile.heal_inc + HolyMissile.heal
+        u.setHP(prev_hp + final_dmg)
+        u.setMana(u.getMana() + HolyMissile.mana_recovery)
+        StatisticsHelper.add_real(owner_.getOwner(), prev_hp - u.getHP())
+
+    static function tick()
+        var self = GetExpiredTimer().getData() castTo HolyMissile
+        if self.moved_dis_ > HolyMissile.range
+            self.timer_.release()
+            self.timer_ = null
+            return
+
+        self.cur_pos_ = MathHelper.forward(self.cur_pos_, self.fly_ang_, HolyMissile.speed)
+        self.moved_dis_ += HolyMissile.speed
+        flashEffect("prr.mdx", self.cur_pos_)
+        let g = CreateGroup()
+        g.enumUnitsInRange(self.cur_pos_, HolyMissile.radius)
+        bool has_hit_ally = false
+        for i in g
+            if IsUnitAlly(i, GetOwningPlayer(self.owner_)) // ally
+                if i == self.owner_ // self
+                    if self.moved_dis_ < 200 // ignore
+                        skip
+                    else
+                        self.on_hit_ally(i)
+                        has_hit_ally = true
+                        break
+                else
+                    if PlayerUnitHelper.get_instance(i) != -1 // ally hero
+                        self.on_hit_ally(i)
+                        has_hit_ally = true
+                        break
+                    else
+                        skip
+            else if not self.dmg_once_map_.has(i) and i.isAlive() // enemy
+                let final_dmg = GetHeroAgi(self.owner_, true) * HolyMissile.dmg_inc + HolyMissile.dmg
+                self.owner_.damageTarget(i, final_dmg, HolyMissile.dmg_type)
+                StatisticsHelper.add_real(self.owner_.getOwner(), final_dmg)
+                self.dmg_once_map_.put(i, true)
+        g.destr()
+
+        if has_hit_ally
+            self.timer_.release()
+            self.timer_ = null
+
+
+@compiletime
+function create_holy_missile()
+    let editor = EditorHelper.create_channel_template(HolyMissile.self_id, emSkillKey.R)
+    editor..setCastRange(1, 9999)
+        ..setManaCost(1, HolyMissile.mana_cost)
+        ..setCooldown(1, HolyMissile.cool_down)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("R")
+        ..setTargetType(1, emTargetType.Ground castTo int)
+        ..setName(HolyMissile.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_PRIEST + "Holy Missile" +
+            Color_Define.COLOR_HOT_KEY + "(R)")
+        ..setTooltipNormalExtended(1, HolyMissile.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\prr.blp")
+
+    destroy editor

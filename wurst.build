@@ -1,0 +1,8 @@
+---
+projectName: Bosscraft
+dependencies:
+- https://github.com/LLRukia/WurstStdlib2
+buildMapData:
+  name: Bosscraft
+  fileName: Bosscraft
+  author: Rukia

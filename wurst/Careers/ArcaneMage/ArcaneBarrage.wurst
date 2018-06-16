@@ -1,0 +1,72 @@
+package ArcaneBarrage
+
+import ArcaneMage
+import EditorHelper
+import GlobalDefines
+import LinkedList
+
+public class ArcaneBarrage extends ArcaneMageSkill
+    static let self_id = 'am0w'
+    static let num = 1
+    static let range = 800.
+    static let self_name = "ArcaneBarrage"
+    static let desc = Color_Define.COLOR_NORMAL + "→你每次施放奥术飞弹时，会额外射出{0}枚奥术飞弹随机打击周围的敌人。|n".format(num.toString()) +
+        Color_Define.COLOR_WARNING + "★额外的奥术飞弹效果与{0}一样|n".format(ArcaneMissile.self_name) +
+        Color_Define.COLOR_WARNING + "★额外的奥术飞弹会均匀地打击周围的单位(非施法目标优先)|n" +
+        Color_Define.COLOR_CAST_RANGE + "→最大距离：{0}|n".format(range.toString(0))
+
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneMissile.editor_id))
+            ..addAction(function ArcaneBarrage.cast)
+
+    static function cast()
+        let caster = GetSpellAbilityUnit()
+        let target = GetSpellTargetUnit()
+        //flashEffect("scrollpink.mdx", uc.getPos())
+        let g = CreateGroup()
+        let candicate_list = new LinkedList<unit>
+        g.enumUnitsInRange(caster.getPos(), range + AREA_DMG_CORRECTION)
+        for u in g
+            if u != caster and u != target and u.isAlive() and not IsUnitAlly(u, caster.getOwner())
+                candicate_list.add(u)
+        g.destr()
+        int num = ArcaneBarrage.num
+        if caster.hasAbility(ArcaneEmpowerment.buff_id)
+            num += ArcaneEmpowerment.num_inc
+        
+        if candicate_list.size() == 0
+            for i = 0 to num - 1
+                ArcaneMissile.launch_missile(caster, target)
+        else
+            let t = new LinkedList<unit>(candicate_list)
+            for i = 0 to num - 1
+                let index = GetRandomInt(0, t.size()-1)
+                ArcaneMissile.launch_missile(caster, t.get(index))
+                t.removeAt(index)
+                if t.size() == 0
+                    t.addAll(candicate_list)
+            destroy t
+
+        destroy candicate_list
+
+
+@compiletime
+function create_arcane_bolt()
+    let editor = new AbilityDefinitionMountainKingBash(ArcaneBarrage.self_id)
+    editor..setChancetoBash(1, 0)
+        ..setChancetoMiss(1, 0)
+        ..setDamageBonus(1, 0)
+        ..setNeverMiss(1, false)
+        ..setDamageMultiplier(1, 0)
+        ..setName(ArcaneBarrage.self_name)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("W")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Arcane Barrage")
+        ..setTooltipNormalExtended(1, ArcaneBarrage.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\amw.blp")
+    destroy editor

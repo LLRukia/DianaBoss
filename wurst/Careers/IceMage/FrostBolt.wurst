@@ -1,0 +1,129 @@
+package FrostBolt
+import IceMage
+import EditorHelper
+import GlobalDefines
+import StatisticsHelper
+import SkillHelper
+import MathHelper
+import SoundUtils
+
+public class FrostBolt extends IceMageSkill
+    static constant int self_id = 'im0q'
+    static let buff_id = 'im2q'
+    static let effect_id = 'im1q'
+    static let fake_id = 'im3q'
+    static let self_name = "FrostBolt"
+    static let inc = 8.
+    static let dmg = 210.
+    static let range = 850.
+    static let energy_dec = 4.
+    static let attack_speed_dec = 0.05
+    static let move_speed_dec = 0.05
+    static let last_time = 1.5
+    static let cool_down = 1.8
+    static let mana_cost = 17
+    static let num = 1
+    static let dmg_type = ATTACK_TYPE_MAGIC
+    static let desc = Color_Define.COLOR_NORMAL + "↓向目标射出{0}枚寒冰箭，造成{1}伤害。|n".format(num.toString(), dmg.toString(1)) +
+        "↓减少目标{0}%/{0}%的速度。|n".format((attack_speed_dec*100).toString(0), (move_speed_dec*100).toString(0)) +
+        Color_Define.COLOR_MANA_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
+        Color_Define.COLOR_ICEMAGE + "↑ {0}%法术强度额外伤害|n".format((inc*100).toString(0)) +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    static var launch = new SoundDefinition(Sounds.frostBoltLaunch1, false, true)
+    //static var hit = new SoundDefinition(Sounds.frostBoltHit1, false)
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==FrostBolt.self_id))
+            ..addAction(function FrostBolt.cast)
+    
+    static function launch_missile(unit caster, unit target)
+        SkillHelper.auto_trace_missile(
+            effect_id, target, caster,
+            (caster.getPos()+POS_CORRECTION).angleTo(target.getPos()).asAngleDegrees(),
+            new FrostBoltCb(caster, target), 0
+        )
+        launch.playOnPoint(caster.getPos3Real())
+
+    static function cast()
+        let caster = GetSpellAbilityUnit()
+        let target = GetSpellTargetUnit()
+        launch_missile(caster, target)
+        let image_unit = (PlayerUnitHelper.get_instance(caster) castTo IceMage).ice_image_unit_
+        if image_unit != null
+            launch_missile(image_unit, target)
+
+    static class FrostBoltCb implements SkillHelperCb
+        unit caster_
+        unit target_
+        construct(unit caster, unit target)
+            this.caster_ = caster
+            this.target_ = target
+        override function cb(int _)
+            let final_dmg = GetHeroAgi(caster_, true) * FrostBolt.inc + FrostBolt.dmg
+            caster_.damageTarget(target_, final_dmg, FrostBolt.dmg_type)
+            target_.setMana(target_.getMana() - FrostBolt.energy_dec)
+            createUnit(caster_.getOwner(), FAKE_CASTER, caster_.getPos(), angle(0))
+                ..addAbility(fake_id)
+                ..issueTargetOrder("cripple", target_)
+                ..setTimedLife(0.5)
+            StatisticsHelper.add_real(caster_.getOwner(), final_dmg)
+            //hit.playOnPoint(ut.getPos3Real())
+            destroy this
+
+@compiletime
+function create_frost_bolt()
+    let ed = EditorHelper.create_channel_template(FrostBolt.self_id, emSkillKey.Q)
+    ed..setCastRange(1, FrostBolt.range)
+        ..setManaCost(1, FrostBolt.mana_cost)
+        ..setCooldown(1, FrostBolt.cool_down)
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("Q")
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ENEMY)
+        ..setName(FrostBolt.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Frost Bolt" + Color_Define.COLOR_HOT_KEY + "(Q)")
+        ..setTooltipNormalExtended(1, FrostBolt.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\imq.blp")
+    destroy ed
+
+
+@compiletime
+function create_frost_bolt_faker()
+    let editor = EditorHelper.create_cripple_template(FrostBolt.fake_id, FrostBolt.last_time, FrostBolt.buff_id)
+    editor..setAttackSpeedReduction(1, FrostBolt.attack_speed_dec)
+        ..setMovementSpeedReduction(1, FrostBolt.move_speed_dec)
+        ..setCastRange(1, 9999)
+        ..setManaCost(1, 0)
+        ..setCooldown(1, 0)
+        ..setDurationHero(1, FrostBolt.last_time)
+        ..setDurationNormal(1, FrostBolt.last_time)
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ENEMY)
+        ..setName("FrostBolt")
+        ..setArtTarget("")
+        
+    destroy editor
+
+@compiletime
+function create_frost_bolt_buff()
+    let editor = new BuffDefinition(FrostBolt.buff_id, 'Bdet')
+    editor..setName(1, "FrostBolt")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Frost Bolt")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位被寒冰箭击中，减速了。")
+        ..setArtTarget(1, "Abilities\\Spells\\Other\\FrostDamage\\FrostDamage.mdl")
+        ..setTargetAttachments(1, 0)
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\imq.blp")
+
+
+    destroy editor
+
+@compiletime
+function create_frost_bolt_effect()
+    let ed = EditorHelper.create_effect_faker_unit(FrostBolt.effect_id, 1, "Abilities\\Spells\\Other\\FrostBolt\\FrostBoltMissile.mdl", color(255,255,255))
+    ed.setMovementHeight(100)
+    destroy ed

@@ -1,0 +1,25 @@
+package SoundHelper
+import SoundUtils
+
+public class SoundPlayer
+    private static var scroll = new SoundDefinition(Sounds.feralSpiritTarget1, false, true)
+    private static var goblin_laugh  = new SoundDefinition(Sounds.feralSpiritTarget1, false, true)
+    private static var demon_laugh  = new SoundDefinition(Sounds.feralSpiritTarget1, false, true)
+    private static var ding  = new SoundDefinition(Sounds.feralSpiritTarget1, false, true)
+    static let counter_spell_sound = CreateSound(Sounds.manaDrainTarget1, false, false, false, 10, 10, "CombatSoundsEAX")
+    
+    static function scroll(vec3 target)
+        scroll.playOnPoint(target)
+    static function counter_spell()
+        counter_spell_sound.play()
+    static function goblin_laugh()
+        goblin_laugh.play()
+    static function demon_laugh()
+        demon_laugh.play()
+    static function ding()
+        ding.play()
+
+    
+
+init
+    SoundPlayer.counter_spell_sound.setPitch(1.2)

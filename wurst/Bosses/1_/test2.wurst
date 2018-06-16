@@ -1,0 +1,44 @@
+package test2
+
+import IBoss
+import ClosureTimers
+import PlayerHelper
+import SoundUtils
+
+public class test2 extends IBossSkill
+    static let break_time = 5.5
+    static let sd = new SoundDefinition(Sounds.slowTarget1, false, true)
+    private CallbackPeriodic m_detect
+    private CallbackSingle m_continue
+    construct(IBoss owner)
+        super(owner)
+        priority = 15.
+
+    ondestroy
+
+    override function cast()
+        unit uc = m_owner.m_self_unit
+        BossHelper.create_skill_text(uc.getPos(), "- 测试嘻嘻 -", SkillTextColor.normal)
+
+        uc..pause().setAnimation("attack")
+        m_continue = doAfter(5) ->
+            uc.unpause()
+            endcast()
+        
+
+    override function detect()
+        doPeriodically(1) m_detect->
+            priority += 0.5
+
+    override function stop_detect()
+        if m_detect != null
+            destroy m_detect
+            m_detect = null
+
+    override function stop_cast()
+        destroy m_continue
+    override function get_break() returns real
+        return break_time
+
+    override function judge() returns bool
+        return true

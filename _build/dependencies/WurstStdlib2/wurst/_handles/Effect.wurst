@@ -1,0 +1,131 @@
+package Effect
+import NoWurst
+import Matrices
+import Quaternion
+import Colors
+import Wurstunit
+
+public function effect.destr()
+	DestroyEffect(this)
+
+public function flashEffect(string path, vec3 pos)
+	flashEffect(path, pos, 1.0)
+
+public function flashEffect(string path, vec2 pos)
+	flashEffect(path, pos, 1.0, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec2 pos, real scale)
+	flashEffect(path, pos, scale, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec3 pos, real scale)
+	flashEffect(path, pos, scale, GetRandomReal(0, 359).fromDeg())
+
+public function flashEffect(string path, vec2 pos, real scale, angle roll)
+	addEffect(path, pos)..setScale(scale)..setRotateZ(roll.radians())..destr()
+
+public function flashEffect(string path, vec3 pos, real scale, angle roll)
+	addEffect(path, pos)..setScale(scale)..setRotateZ(roll.radians())..destr()
+
+public function flashEffect(string path, widget target, string attachPointName)
+	addEffect(path, target, attachPointName).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, vec3 pos)
+	addEffect(abilityId, effType, pos).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j)
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, vec2 pos)
+	addEffect(abilityId, effType, pos).destr()
+
+/** Creates and immediatly destroys an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function flashEffect(int abilityId, effecttype effType, widget target, string attachPointName)
+	addEffect(abilityId, effType, target, attachPointName).destr()
+
+public function addEffect(string path, vec2 pos) returns effect
+	return AddSpecialEffect(path, pos.x, pos.y)
+
+public function addEffect(string path, vec3 pos) returns effect
+	return AddSpecialEffect(path, pos.x, pos.y)..setPos(pos)
+
+public function addEffect(string path, widget target, string attachPointName) returns effect
+	return AddSpecialEffectTarget(path, target, attachPointName)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, vec2 pos) returns effect
+	return AddSpellEffectById(abilityId, effType, pos.x, pos.y)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, vec3 pos) returns effect
+	return AddSpellEffectById(abilityId, effType, pos.x, pos.y)..setPos(pos)
+
+/** Creates an effect from the data defined in the ability's field "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function addEffect(int abilityId, effecttype effType, widget target, string attachPointName) returns effect
+	return AddSpellEffectTargetById(abilityId, effType, target, attachPointName)
+
+public function effect.setScale(real scale)
+	EXSetEffectSize(this, scale)
+
+public function effect.setScale(vec3 scale)
+	EXEffectMatScale(this, scale.x, scale.y, scale.z)
+
+public function effect.getSize() returns real
+	return EXGetEffectSize(this)
+
+public function effect.setAnimSpeed(real speed)
+	EXSetEffectSpeed(this, speed)
+
+public function effect.setRotateX(real angle)
+	EXEffectMatRotateX(this, angle)
+
+public function effect.setRotateY(real angle)
+	EXEffectMatRotateY(this, angle)
+
+public function effect.setRotateZ(real angle)
+	EXEffectMatRotateZ(this, angle)
+
+//yall pitch roll
+public function effect.setRotate(real x, real y, real z)
+	EXEffectMatRotateX(this, x)
+	EXEffectMatRotateY(this, y)
+	EXEffectMatRotateZ(this, z)
+
+public function effect.setRotate(mat3 matrix)
+	let euler = matrix.toEuler()
+	this.setRotate(euler.x, euler.y, euler.z)
+
+public function effect.setRotate(quat quaternion)
+	let euler = quaternion.toEuler()
+	this.setRotate(euler.x, euler.y, euler.z)
+
+/** Returns the data defined in the ability's field  "Art - Caster/Target/Missile/Ligtning/etc." (full list in common.j).
+Works for custom abilities. */
+public function getAbilityEffect(int abilityId, effecttype effType, int index) returns string
+	return GetAbilityEffectById(abilityId, effType, index)
+
+public function effect.setPos(vec3 pos)
+	EXSetEffectXY(this, pos.x, pos.y)
+	EXSetEffectZ(this, pos.z)
+
+public function effect.setPos(vec2 pos)
+	EXSetEffectXY(this, pos.x, pos.y)
+
+public function effect.setZ(real z)
+	EXSetEffectZ(this, z)
+
+public function effect.setHeight(real z)
+	EXSetEffectZ(this, z)
+
+public function effect.getPos3() returns vec3
+	return vec3(EXGetEffectX(this), EXGetEffectY(this), EXGetEffectZ(this))
+
+public function effect.getPos() returns vec2
+	return vec2(EXGetEffectX(this), EXGetEffectY(this))
+
+public function effect.reset()
+	EXEffectMatReset(this)

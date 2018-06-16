@@ -1,0 +1,24 @@
+package WarlockSkill
+
+import public Buffs
+import public StatisticsHelper
+
+import public initlater ShadowCounterSpell
+import public initlater UnholySprint
+import public initlater ShadowBolt
+import public initlater SiphonShadow
+import public initlater EternalDetermination
+import public initlater SoulGem
+
+import BaseSkills
+
+public class WarlockSkill extends IBaseSkills
+    construct(unit caster)
+        super(caster)
+
+
+    override function listen()
+
+    override function on_buff_removed(unit _u)
+
+    override function clear()

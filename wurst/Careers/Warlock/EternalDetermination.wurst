@@ -1,0 +1,96 @@
+package EternalDetermination
+
+import Warlock
+import AbilityObjEditing
+import ObjectIds
+import BuffObjEditing
+import TriggerHelper
+import SkillHelper
+import TimerUtils
+import PlayerUnit
+
+public class EternalDetermination extends WarlockSkill
+    static let self_id = 'wl0d'
+    static let last_time = 1.5
+    static let buff_id = 'wldd'
+    private timer m_tm
+    private Invulnerability m_buff_obj = null
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==EternalDetermination.self_id))
+            ..addAction(function EternalDetermination.cast)
+            ..setData(this castTo int)
+
+
+    override function on_buff_removed(unit u)
+        if u != owner_
+            if _DEBUG
+                print("D Buff Error!!")
+            return
+
+        if m_buff_obj != null
+            destroy m_buff_obj
+            m_buff_obj = null
+            (PlayerUnitHelper.get_instance(owner_) castTo PlayerUnit).set_invulnerable(false)
+
+    static function cast()
+        var obj = GetTriggeringTrigger().getData() castTo EternalDetermination
+        obj.m_buff_obj = SkillHelper.protect(obj.owner_)
+        obj.owner_.add_buff(EternalDetermination.buff_id, BuffClearType.stable, BuffType.buffs, obj)
+        obj.owner_.remove_buff(BuffClearType.additions, BuffType.buffs)
+        obj.owner_.remove_buff(BuffClearType.additions, BuffType.debuffs)
+        (PlayerUnitHelper.get_instance(obj.owner_) castTo PlayerUnit).set_invulnerable(true)
+        obj.m_tm = getTimer()
+        obj.m_tm..setData(obj castTo int)
+            ..startPeriodic(EternalDetermination.last_time, function tm_destroy_buff)
+    
+    static function tm_destroy_buff()
+        timer t = GetExpiredTimer()
+        var obj = t.getData() castTo EternalDetermination
+        obj.clear()
+    
+    override function clear()
+        if m_tm != null
+            m_tm.release()
+            m_tm = null
+        owner_.remove_buff(EternalDetermination.buff_id)
+
+@compiletime
+function create_divine_aegis()
+    var ed = new AbilityDefinitionBeserk(EternalDetermination.self_id)
+    ed..setLevels(1)
+        ..setHotkeyNormal("D")
+        ..setDamageTakenIncrease(1, 0)
+        ..setMovementSpeedIncrease(1, 0)
+        ..setAttackSpeedIncrease(1, 0)
+        ..setDurationHero(1, EternalDetermination.last_time)
+        ..setDurationNormal(1, EternalDetermination.last_time)
+        ..setManaCost(1, 5)
+        ..setCooldown(1, 12)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(1)
+        ..setName("EternalDetermination")
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_PRIEST + "Eternal Determination" +
+            Color_Define.COLOR_HOT_KEY + "(D)")
+        ..setTooltipNormalExtended(1,
+            Color_Define.COLOR_NORMAL + "↑术士永不灭！|n" +
+            Color_Define.COLOR_LAST_TIME + "→持续1.5秒。|n" +
+            Color_Define.COLOR_WARNING + "★使用此技能会消除掉大部分魔法效果。|n" +
+            Color_Define.COLOR_COOL_DOWN + "→CD:12s")
+        ..setIconNormal("replaceabletextures\\commandbuttons\\wld.blp")
+        ..setBuffs(1, EternalDetermination.buff_id.toRawCode())
+    
+@compiletime
+function create_ice_shield_buff()
+    var ed = new BuffDefinition(EternalDetermination.buff_id, 'Bbsk')
+    ed..setArtTarget(1, "wld.mdx")
+    ..setTargetAttachments(1, 2)
+    ..setTargetAttachmentPoint0(1, "origin")
+    ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Eternal Determination")
+    ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位免疫伤害。")
+    ..setIconNormal(1, "replaceabletextures\\commandbuttons\\wld.blp")
+    

@@ -1,0 +1,170 @@
+package SiphonShadow
+
+import Warlock
+import GlobalDefines
+import TriggerHelper
+import SkillHelper
+import BossHelper
+import TimerUtils
+import AbilityObjEditing
+import SoundHelper
+
+public class SiphonShadow extends WarlockSkill
+    static let self_id = 'wl0r'
+    //static timer tm_decrase_dmg
+    //static bool b_decrase = false
+
+    static constant real dmg = 150.
+    static let inc = 18.
+    static let dec_mana = 15.
+
+    private trigger m_tr_target_judge = CreateTrigger()
+    private trigger m_tr_end = CreateTrigger()
+    private trigger m_tr_finish = CreateTrigger()
+    private timer m_tm_channel_effect
+    private int m_time
+    private int m_num
+    private int m_cur_num
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==SiphonShadow.self_id))
+            ..addAction(function SiphonShadow.cast)
+            ..setData(this castTo int)
+        m_tr_target_judge..registerUnitEvent(owner_, EVENT_UNIT_SPELL_CHANNEL)
+            ..addCondition(Filter(()->GetSpellAbilityId()==SiphonShadow.self_id))
+            ..addAction(function SiphonShadow.prepare)
+            ..setData(this castTo int)
+        m_tr_end..registerUnitEvent(owner_, EVENT_UNIT_SPELL_ENDCAST)
+            ..addCondition(Filter(()->GetSpellAbilityId()==SiphonShadow.self_id))
+            ..addAction(function SiphonShadow.endcast)
+            ..setData(this castTo int)
+        m_tr_finish..registerUnitEvent(owner_, EVENT_UNIT_SPELL_FINISH)
+            ..addCondition(Filter(()->GetSpellAbilityId()==SiphonShadow.self_id))
+            ..addAction(function SiphonShadow.finish)
+            ..setData(this castTo int)
+
+    static function prepare()
+        var obj = GetTriggeringTrigger().getData() castTo SiphonShadow
+        if BossHelper.cur_boss == null or not BossHelper.cur_boss.isAlive()
+            obj.owner_.issueImmediateOrder("stop")
+
+    static function endcast()
+        var obj = GetTriggeringTrigger().getData() castTo SiphonShadow
+        if obj.m_tm_channel_effect != null
+            obj.m_tm_channel_effect.release()
+            obj.m_tm_channel_effect = null
+
+    static function cast()
+        var obj = GetTriggeringTrigger().getData() castTo SiphonShadow
+
+        obj.m_tm_channel_effect = getTimer()
+        obj.m_time = 0
+        obj.m_tm_channel_effect..setData(obj castTo int)
+            ..startPeriodic(1, function channel_effect)
+
+    static function channel_effect()
+        var obj = GetExpiredTimer().getData() castTo SiphonShadow
+        if BossHelper.cur_boss == null or not BossHelper.cur_boss.isAlive()
+            if obj.m_tm_channel_effect != null
+                obj.m_tm_channel_effect.release()
+                obj.m_tm_channel_effect = null
+            obj.owner_.issueImmediateOrder("stop")
+            return
+
+        SoundPlayer.scroll(obj.owner_.getPos3Real())
+        flashEffect("scrollpurp.mdx", obj.owner_.getPos())
+        
+        obj.m_time++
+        real speed = 64 * 0.071 / 128
+        real angle = 90
+        createTTEx(obj.owner_.getPos3with(120) - vec3(145, 0, 0), obj.m_time.toString(), 7, color(255,204,0).withAlpha(255))
+            ..setPermanent(false)
+            ..setFadepoint(2.)
+            ..setLifespan(3.)
+            ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
+
+        if obj.m_time == 4
+            if obj.m_tm_channel_effect != null
+                obj.m_tm_channel_effect.release()
+                obj.m_tm_channel_effect = null
+
+    static function finish()
+        if BossHelper.cur_boss == null or not BossHelper.cur_boss.isAlive()
+            return
+        var obj = GetTriggeringTrigger().getData() castTo SiphonShadow
+        if obj.m_time == 4
+            obj.release_bolts()
+            obj.owner_.setHP(obj.owner_.getHP() - 500)
+
+    function release_bolts()
+        m_num = GetUnitAbilityLevel(owner_, self_id)
+        m_cur_num = 0
+        owner_.setAbilityLevel(self_id, 5)
+
+        timer t = getTimer()
+        t..setData(this castTo int)
+            ..startPeriodic(0.1, function tm_cb)
+
+    static function tm_cb()
+        var obj = GetExpiredTimer().getData() castTo SiphonShadow
+        obj.m_cur_num++
+        angle ang
+        if GetRandomInt(1, 2) == 1
+            ang = GetRandomReal(-90., -30.).asAngleDegrees()
+        else
+            ang = GetRandomReal(30., 90.).asAngleDegrees()
+
+        ShadowBolt.launch.playOnPoint(obj.owner_.getPos3Real())
+        SkillHelper.auto_trace_missile(ShadowBolt.effect_id, BossHelper.cur_boss, obj.owner_,
+            ang + obj.owner_.getFacing().asAngleDegrees(), new ShadowKingCb, obj castTo int)
+
+        if obj.m_cur_num >= obj.m_num
+            GetExpiredTimer().release()
+
+    static class ShadowKingCb implements SkillHelperCb
+        override function cb(int obj)
+            var ts = obj castTo SiphonShadow
+            flashEffect("wlq.mdx", BossHelper.cur_boss.getPos3Real())
+            ShadowBolt.hit.playOnPoint(BossHelper.cur_boss.getPos3Real())
+
+            real f_dmg = GetHeroAgi(ts.owner_, true) * SiphonShadow.inc + SiphonShadow.dmg
+            ts.owner_.damageTarget(BossHelper.cur_boss, f_dmg, ATTACK_TYPE_MAGIC)
+            StatisticsHelper.add_real(ts.owner_.getOwner(), f_dmg)
+            BossHelper.cur_boss.setMana(BossHelper.cur_boss.getMana() - dec_mana)
+            destroy this
+
+@compiletime
+function create_revive()
+    var ed = new AbilityDefinitionMoonPriestessStarfall(SiphonShadow.self_id)
+    ed.setLevels(15)
+    for i = 1 to 15
+        ed..setManaCost(i, 0)
+            ..setCooldown(i, 10)
+            ..setBuffs(i, "")
+            ..setDurationHero(i, 4)
+            ..setDurationNormal(i, 4)
+            ..setTooltipNormal(i,
+                Color_Define.COLOR_WARLOCK + "Siphon Shadow" +
+                Color_Define.COLOR_HOT_KEY + "(R)")
+            ..setTooltipNormalExtended(i,
+                Color_Define.COLOR_NORMAL + "→吟唱4秒，集中意识萃取Boss身上溢出的暗影箭能量。|n4秒后，提取出"+i.toString()+ "支暗影箭矢，射向Boss造成150伤害。|n" +
+                Color_Define.COLOR_MANA_DECREASE + "↓每支箭矢命中后减少目标15点能量|n" +
+                Color_Define.COLOR_WARLOCK + "↑ 1800%法术强度额外伤害（每支）|n" +
+                Color_Define.COLOR_WARNING + "▼技能被打断也会进入CD|n▲技能释放成功时扣除自身500生命|n" +
+                Color_Define.COLOR_COOL_DOWN + "→CD:60s")
+            ..setEffects(i, "")
+            ..setAreaofEffect(i, 0)
+    
+    ed..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("R")
+        ..setName("SiphonShadow")
+        ..setHeroAbility(false)
+        ..setRequiredLevel(1)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\wlr.blp")
+
+        
+        

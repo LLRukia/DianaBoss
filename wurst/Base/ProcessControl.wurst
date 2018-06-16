@@ -1,0 +1,46 @@
+package ProcessControl
+
+import ClosureTimers
+import Boards
+import BossHelper
+import GlobalDefines
+import initlater PlayerPick
+
+public PlayerBoard player_board = null
+
+public function game_start()
+    player_board.show(true)
+    player_board.refresh_boss()
+    int count = 999
+    doPeriodically(1) cb ->
+        count--
+        if count < 0
+            for i = 0 to PLAYER_NUM-1
+                if not LoadBoolean(click_map, i, CAREERS_NUM + 1) and players[i].getController() == MAP_CONTROL_USER
+                        and players[i].isIngame()
+                    GetRandomInt(0, CAREERS_NUM-1)
+                    players[i].pick(GetRandomInt(0, CAREERS_NUM-1))
+            BossHelper.prepare()
+            doAfter(1.5) ->
+                player_board.show(false)
+            destroy cb
+        else
+            player_board.refresh_time(count)
+        
+public function game_rest()
+    player_board.show(true)
+    player_board.refresh_boss()
+    int count = 61
+    doPeriodically(1) cb ->
+        count--
+        if count < 0
+            BossHelper.prepare()
+            doAfter(1.5) ->
+                player_board.show(false)
+            destroy cb
+        else
+            player_board.refresh_time(count)
+
+init
+    doAfter(0) ->
+        player_board = new PlayerBoard

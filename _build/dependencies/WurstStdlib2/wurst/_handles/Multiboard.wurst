@@ -1,0 +1,90 @@
+package Multiboard
+import Colors
+import NoWurst
+import Player
+
+public function multiboard.destr()
+	DestroyMultiboard(this)
+
+public function multiboard.isDisplayed() returns boolean
+	return IsMultiboardDisplayed(this)
+
+public function multiboard.isMinimized() returns boolean
+	return IsMultiboardMinimized(this)
+
+public function multiboard.clear()
+	MultiboardClear(this)
+
+public function multiboard.display(boolean show)
+	MultiboardDisplay(this,show)
+
+public function multiboard.display(player p, boolean show)
+	if localPlayer == p
+		MultiboardDisplay(this,show)
+
+public function multiboard.getColumnCount() returns int
+	return MultiboardGetColumnCount(this)
+
+public function multiboard.getItem(int row, int column) returns multiboarditem
+	return MultiboardGetItem(this,row,column)
+
+public function multiboard.getRowCount() returns int
+	return MultiboardGetRowCount(this)
+
+public function multiboard.getTitleText() returns string
+	return MultiboardGetTitleText(this)
+
+public function multiboard.minimalize(boolean minimalize)
+	MultiboardMinimize(this,minimalize)
+
+public function multiboard.setColumnCount(int count)
+	MultiboardSetColumnCount(this, count)
+
+public function multiboard.setRowCount(int count)
+	MultiboardSetRowCount(this, count)
+
+public function multiboard.setItemsIcon(string path)
+	MultiboardSetItemsIcon(this, path)
+
+public function multiboard.setItemsStyle(boolean showValues, boolean showIcons)
+	MultiboardSetItemsStyle(this, showValues, showIcons)
+
+public function multiboard.setItemsValue(string value)
+	MultiboardSetItemsValue(this,value)
+
+public function multiboard.setItemsValueColor(int r,int g, int b, int a)
+	MultiboardSetItemsValueColor(this,r,g,b,a)
+
+public function multiboard.setItemsWidth(real width)
+	MultiboardSetItemsWidth(this, width)
+
+public function multiboard.setTitle(string label)
+	MultiboardSetTitleText(this, label)
+
+public function multiboard.setTitleColor(int r,int g, int b, int a)
+	MultiboardSetTitleTextColor(this, r,g,b,a)
+
+public function multiboard.setTitleColor(colorA col)
+	MultiboardSetTitleTextColor(this, col.red, col.green, col.blue, col.alpha)
+
+//multiboarditems
+public function multiboarditem.release()
+	MultiboardReleaseItem(this)
+
+public function multiboarditem.setIcon(string iconFileName)
+	MultiboardSetItemIcon(this,iconFileName)
+
+public function multiboarditem.setStyle(boolean showValue, boolean showIcon)
+	MultiboardSetItemStyle(this, showValue, showIcon)
+
+public function multiboarditem.setValue(string value)
+	MultiboardSetItemValue(this,value)
+
+public function multiboarditem.setValueColor(int r, int g, int b, int a)
+	MultiboardSetItemValueColor(this, r,g,b,a)
+
+public function multiboarditem.setValueColor(colorA col)
+	MultiboardSetItemValueColor(this, col.red, col.green, col.blue, col.alpha)
+
+public function multiboarditem.setWidth(real width)
+	MultiboardSetItemWidth(this, width)

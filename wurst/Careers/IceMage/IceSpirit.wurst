@@ -1,0 +1,263 @@
+package IceSpirit
+
+import EditorHelper
+import IceMage
+import GlobalDefines
+import BossHelper
+import TriggerHelper
+import HashMap
+import SkillHelper
+import Buffs
+import TimerUtils
+
+public class IceSpirit extends IceMageSkill
+    static let self_id = 'im0f'
+    static let self_ids = ['im0f', 'im1f', 'im2f', 'im3f']
+    static let buff_up_id = 'im1b'
+    static let buff_down_id = 'im2b'
+    static let skill_up_id = 'imf1'
+    static let skill_down_id = 'imf2'
+    static let caster_faker = 'imfu'
+    static let self_name = "IceSpirit"
+    static let move_speed_dec = 0.24
+    static let move_speed_inc = 0.5
+    static let last_time_inc = 5.
+    static let last_time_dec = 3.
+    static let hp_recovery = 200.
+    static let mana_recovery = 30.
+    static let range = 500.
+    static let cool_down = 0.1
+    static let spirits_max_num = 3
+    static let desc = Color_Define.COLOR_NORMAL + "被动效果：|n→当你杀死单位时，为你回复" + 
+        Color_Define.COLOR_ICEMAGE + "{0}生命".format(hp_recovery.toString(1)) + Color_Define.COLOR_NORMAL + "和" + 
+        Color_Define.COLOR_ICEMAGE + "{0}魔法".format(mana_recovery.toString(1)) + Color_Define.COLOR_NORMAL +
+        "，并增加一点Spirit，最大{0}点。|n主动效果：|n→消耗一个储存的Spirit，在指定地点放置一个寒冰之灵|n".format(spirits_max_num.toString()) +
+        Color_Define.COLOR_HOT_KEY + "↑友方玩家踩到增加{0}%移动速度|n".format((move_speed_inc*100).toString(0)) + 
+        Color_Define.COLOR_WARNING  + "↓Boss踩到减少{0}%移动速度|n".format((move_speed_dec*100).toString(0)) +
+        Color_Define.COLOR_LAST_TIME + "→Boss持续{0}秒，友方单位持续{1}秒。|n".format(last_time_dec.toString(1), last_time_inc.toString(1)) +
+        Color_Define. COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    private var buff_timer_map = new IterableMap<timer, unit>
+    private var spirit_map_ = new IterableMap<effect, rect>
+    private region region_ = CreateRegion()
+    private trigger region_trigger_ = CreateTrigger()
+    private trigger recovery_trigger_ = CreateTrigger()
+    private int exists_spirit_num_ = 0
+    private int own_spirit_num_ = 0
+    construct(unit u)
+        super(u)
+    
+    ondestroy
+        clear()
+        region_.destr()
+        region_ = null
+        region_trigger_..disable()..destr()
+        region_trigger_ = null
+        recovery_trigger_..disable()..destr()
+        recovery_trigger_ = null
+
+        destroy spirit_map_
+        spirit_map_ = null
+
+    override function clear()
+        owner_.removeAbility(IceSpirit.self_ids[own_spirit_num_])
+        own_spirit_num_ = 0
+        exists_spirit_num_ = 0
+        owner_.addAbility(IceSpirit.self_ids[own_spirit_num_])
+        for i in spirit_map_
+            region_.clearRect(spirit_map_.get(i))
+            i..setPos(vec2(0,0))..destr()
+        spirit_map_.flush()
+        for i in buff_timer_map
+            let u = buff_timer_map.get(i)
+            u.remove_buff(IceSpirit.buff_up_id)
+            i.release()
+        buff_timer_map.flush()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceSpirit.self_ids[0] or GetSpellAbilityId()==IceSpirit.self_ids[1]
+                or GetSpellAbilityId()==IceSpirit.self_ids[2] or GetSpellAbilityId()==IceSpirit.self_ids[3]))
+            ..addAction(function IceSpirit.cast)
+            ..setData(this castTo int)
+        recovery_trigger_..registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+            ..addCondition(Filter(function is_killer))
+            ..addAction(function do_recovery)
+            ..setData(this castTo int)
+        region_trigger_..registerEnterRegion(region_, null)
+            ..addAction(function IceSpirit.on_region_entered)
+            ..setData(this castTo int)
+
+    static function cast()
+        let lc = GetSpellTargetLoc()
+        let target_pos = vec2(GetLocationX(lc), GetLocationY(lc))
+        RemoveLocation(lc)
+        (GetTriggeringTrigger().getData() castTo IceSpirit).do_cast(target_pos)
+
+    function do_cast(vec2 target_pos)
+        if own_spirit_num_ == 0
+            printTimedToPlayer(Color_Define.COLOR_ICEMAGE + "Ice Spirit数量不足。", 2., owner_.getOwner())
+            return
+        if exists_spirit_num_ == 3
+            printTimedToPlayer(Color_Define.COLOR_ICEMAGE + "场上的Ice Spirit数量已经达到最大值。", 2., owner_.getOwner())
+            for eff in spirit_map_
+                let rec = spirit_map_.getAndRemove(eff)
+                flashEffect("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", eff.getPos())
+                spirit_map_.remove(eff)
+                region_.clearRect(rec)
+                RemoveRect(rec)
+                eff..setPos(vec2(0, 0))..destr()
+                exists_spirit_num_--
+                break
+
+        owner_.removeAbility(IceSpirit.self_ids[own_spirit_num_])
+        own_spirit_num_--
+        owner_.addAbility(IceSpirit.self_ids[own_spirit_num_])
+        exists_spirit_num_++
+
+        let rc = Rect(target_pos.x - 40, target_pos.y - 40, target_pos.x + 40, target_pos.y + 40)
+        spirit_map_.put(addEffect("imf.mdx", target_pos), rc)
+        region_.addRect(rc)
+
+    static function on_region_entered()
+        var self = GetTriggeringTrigger().getData() castTo IceSpirit
+        let u = GetEnteringUnit()
+        if (PlayerUnitHelper.get_instance(u) == -1 and not u.isBoss()) or not u.can_add_buff()
+            return
+        var min = 10000000.
+        effect triggering_effect = null
+        for i in self.spirit_map_
+            let r = (i.getPos() - u.getPos()).lengthSq()
+            if min > r
+                triggering_effect = i
+                min = r
+        if triggering_effect == null
+            Log.error("IceSpirit cannot find entering region")
+            return
+
+        let rc = self.spirit_map_.getAndRemove(triggering_effect)
+        self.region_.clearRect(rc)
+        RemoveRect(rc)
+        self.exists_spirit_num_--
+        flashEffect("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", triggering_effect.getPos())
+        triggering_effect..setPos(vec2(0,0))..destr()
+        
+        let faker = createUnit(self.owner_.getOwner(), FAKE_CASTER, u.getPos() + vec2(-100, 0), angle(0))
+                    ..setTimedLife(1)
+                    ..addAbility(IceSpirit.skill_up_id)
+                    ..addAbility(IceSpirit.skill_down_id)
+        if u.isBoss()
+            faker.issueTargetOrder("cripple", u)
+        else
+            faker.issueTargetOrder("bloodlust", u)
+            u.add_buff(IceSpirit.buff_up_id, BuffClearType.additions, BuffType.buffs, self)
+            let t = getTimer()
+                ..setData(self castTo int)
+                ..start(last_time_inc, function IceSpirit.on_buff_expired)
+            self.buff_timer_map.put(t, u)
+
+    override function on_buff_removed(unit u)
+        if u.isBoss()
+            Log.error("IceSpirit callback unit is Boss")
+        else
+            for i in buff_timer_map
+                if buff_timer_map.get(i) == u
+                    i.release()
+                    buff_timer_map.remove(i)
+                    break
+
+    static function on_buff_expired()
+        let t = GetExpiredTimer()
+        let self = t.getData() castTo IceSpirit
+        let u = self.buff_timer_map.getAndRemove(t)
+        u.remove_buff(IceSpirit.buff_up_id)
+        t.release()
+
+    static function is_killer() returns boolean
+        let self = GetTriggeringTrigger().getData() castTo IceSpirit
+        return GetKillingUnit() == self.owner_
+
+    static function do_recovery()
+        let self = GetTriggeringTrigger().getData() castTo IceSpirit
+        self.owner_..setHP(self.owner_.getHP() + IceSpirit.hp_recovery)
+                ..setMana(self.owner_.getMana() + IceSpirit.mana_recovery)
+        if self.own_spirit_num_ < 3
+            self.owner_.removeAbility(IceSpirit.self_ids[self.own_spirit_num_])
+            self.own_spirit_num_++
+            self.owner_.addAbility(IceSpirit.self_ids[self.own_spirit_num_])
+
+@compiletime
+function create_ice_spirit()
+    let icons = ["imf0.blp", "imf1.blp", "imf2.blp", "imf3.blp"]
+    for i = 0 to IceSpirit.spirits_max_num
+        let editor = EditorHelper.create_channel_template(IceSpirit.self_ids[i], emSkillKey.F)
+        editor..setCastRange(1, IceSpirit.range)
+            ..setManaCost(1, 0)
+            ..setCooldown(1, 0)
+            ..setButtonPositionNormalX(2)
+            ..setButtonPositionNormalY(1)
+            ..setHotkeyNormal("F")
+            ..setTargetType(1, emTargetType.Ground castTo int)
+            ..setName(IceSpirit.self_name)
+            ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Spirit[Chill Version]" + Color_Define.COLOR_HOT_KEY + "(F)")
+            ..setTooltipNormalExtended(1, IceSpirit.desc)
+            ..setIconNormal("replaceabletextures\\commandbuttons\\" + icons[i])
+        destroy editor
+
+@compiletime
+function create_faker_skills()
+    let ed1 = new AbilityDefinitionCripple(IceSpirit.skill_down_id)
+    ed1..setDamageReduction(1, 0.)
+        ..setAttackSpeedReduction(1, 0.)
+        ..setMovementSpeedReduction(1, IceSpirit.move_speed_dec)
+        ..setDurationHero(1, IceSpirit.last_time_dec)
+        ..setDurationNormal(1, IceSpirit.last_time_dec)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setTargetsAllowed(1, "enemies,ground,air,organic")
+        ..setBuffs(1, IceSpirit.buff_down_id.toRawCode())
+        ..setName("Spirit Boss")
+    destroy ed1
+
+    let ed2 = new AbilityDefinitionBloodlust(IceSpirit.skill_up_id)
+    ed2..setScalingFactor(1, 0.)
+        ..setAttackSpeedIncrease(1, 0.)
+        ..setMovementSpeedIncrease(1, IceSpirit.move_speed_inc)
+        ..setDurationHero(1, IceSpirit.last_time_inc)
+        ..setDurationNormal(1, IceSpirit.last_time_inc)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setBuffs(1, IceSpirit.buff_up_id.toRawCode())
+        ..setName("Spirit Player")
+    destroy ed2
+
+@compiletime
+function create_speed_up_buff()
+    let editor = new BuffDefinition(IceSpirit.buff_up_id, 'Bdet')
+    editor..setName(1, IceSpirit.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + IceSpirit.self_name)
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位吸收了寒冰之灵，移动速度加快了。")
+        ..setArtTarget(1, "imf1.mdx")
+        ..setTargetAttachmentPoint0(1, "overhead")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\imf0.blp")
+    destroy editor
+
+@compiletime
+function create_speed_down_buff()
+    let editor = new BuffDefinition(IceSpirit.buff_down_id, 'Bdet')
+    editor..setName(1, IceSpirit.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + IceSpirit.self_name)
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位吸收了寒冰之灵，移动速度减慢了。")
+        ..setArtTarget(1, "imf1.mdx")
+        ..setTargetAttachmentPoint0(1, "overhead")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\imf0.blp")
+    destroy editor

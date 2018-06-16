@@ -1,0 +1,32 @@
+package ProgressBar
+
+import GlobalDefines
+import TimerUtils
+
+public class ProgressBar
+    private real max_ = 0.
+    private real cur_ = 0.
+    private texttag text_
+    private timer pos_update_timer_
+    private unit attach_to_
+
+    construct(unit u, real max)
+        attach_to_ = u
+        max_ = max
+        text_ = createTTEx(u.getPos3with(50), Color_Define.COLOR_ICEMAGE + max.toString(0), 8)
+        pos_update_timer_ = CreateTimer()
+        pos_update_timer_..setData(this castTo int)
+            ..startPeriodic(0.03, function pos_update_tick)
+
+    ondestroy
+        pos_update_timer_..pause()..destr()
+        text_..destr()
+
+    function set_cur_value(real f)
+        cur_ = f
+        text_.setText(Color_Define.COLOR_ICEMAGE + cur_.toString(0), 8)
+
+    static function pos_update_tick()
+        let self = (GetExpiredTimer().getData()) castTo ProgressBar
+        self.text_.setPos(self.attach_to_.getPos3with(50))
+

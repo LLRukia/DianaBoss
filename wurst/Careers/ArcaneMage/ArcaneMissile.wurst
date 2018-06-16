@@ -1,0 +1,94 @@
+package ArcaneMissile
+
+import ArcaneMage
+import EditorHelper
+import SoundUtils
+import GlobalDefines
+import SkillHelper
+
+public class ArcaneMissile extends ArcaneMageSkill
+    static let editor_id = 'am0q'
+    static let effect_id = 'am1q'
+    static let self_name = "ArcaneMissile"
+    static let inc = 5.
+    static let dmg = 200.
+    static let range = 800.
+    static let energy_dec = 3.
+    static let cool_down = 1.8
+    static let mana_cost = 22
+    static let num = 1
+    static let dmg_type = ATTACK_TYPE_MAGIC
+    static let desc =  Color_Define.COLOR_NORMAL + "→向目标射出{0}枚奥术飞弹，造成{1}伤害。|n".format(num.toString(), dmg.toString(1)) +
+        Color_Define.COLOR_MANA_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
+        Color_Define.COLOR_ICEMAGE + "↑ {0}%法术强度额外伤害|n".format((inc * 100).toString(0)) +
+        Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
+    static var sound_launch = new SoundDefinition(Sounds.faerieDragonAttack, false, true)
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==ArcaneMissile.editor_id))
+            ..addAction(function ArcaneMissile.cast)
+
+    static function cast()
+        let caster = GetSpellAbilityUnit()
+        let target = GetSpellTargetUnit()
+        int num = ArcaneBarrage.num
+        if caster.hasAbility(ArcaneEmpowerment.buff_id)
+            num += ArcaneEmpowerment.num_inc
+        for _ = 0 to num - 1
+            launch_missile(caster, target)
+
+    static function launch_missile(unit caster, unit target)
+        angle ang
+        if GetRandomInt(1, 2) == 1
+            ang = GetRandomReal(-60., -30.).asAngleDegrees()
+        else
+            ang = GetRandomReal(30., 60.).asAngleDegrees()
+
+        sound_launch.playOnPoint(caster.getPos3Real())
+        SkillHelper.auto_trace_missile_modify_speed(effect_id, target, caster, ang + caster.getFacing().asAngleDegrees(),
+            new ArcaneMissileCb(caster, target), 0, 55., 11., 55., 0)
+    
+public class ArcaneMissileCb implements SkillHelperCb
+    unit uc
+    unit ut
+    construct(unit uc, unit ut)
+        this.uc = uc
+        this.ut = ut
+    override function cb(int _obj)
+        let final_dmg = GetHeroAgi(uc, true) * ArcaneMissile.inc + ArcaneMissile.dmg
+        uc.damageTarget(ut, final_dmg, ArcaneMissile.dmg_type)
+        flashEffect("amq1.mdx", ut.getPos3Real())
+        flashEffect("amq2.mdx", ut.getPos3Real())
+        ut.setMana(ut.getMana() - ArcaneMissile.energy_dec)
+        StatisticsHelper.add_real(uc.getOwner(), final_dmg)
+        destroy this
+
+@compiletime
+function create_arcane_bolt()
+    let ed = EditorHelper.create_channel_template(ArcaneMissile.editor_id, emSkillKey.Q)
+    ed..setCastRange(1, ArcaneMissile.range)
+        ..setManaCost(1, ArcaneMissile.mana_cost)
+        ..setCooldown(1, ArcaneMissile.cool_down)
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("Q")
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ENEMY)
+        ..setName(ArcaneMissile.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Arcane Missile" +
+            Color_Define.COLOR_HOT_KEY + "(Q)")
+        ..setTooltipNormalExtended(1, ArcaneMissile.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\amq.blp")
+    destroy ed
+
+@compiletime
+function create_arcane_bolt_effect()
+    let ed = EditorHelper.create_effect_faker_unit(ArcaneMissile.effect_id, 1, "amq.mdx", color(255,255,255))
+    ed.setMovementHeight(100)
+    destroy ed

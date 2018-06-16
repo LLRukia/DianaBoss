@@ -1,0 +1,137 @@
+package PowerInfusion
+
+import Priest
+import TriggerHelper
+import EditorHelper
+import SkillHelper
+import GlobalDefines
+import TimerUtils
+import SoundHelper
+
+public class PowerInfusion extends PriestSkill
+    static let self_id = 'pr0g'
+    static let self_name = "PowerInfusion"
+    static let last_time = 20.
+    static let decrease = 0.3
+    static let speed_up = 0.25
+    static let buff_id = 'pr1g'
+    static let help_id = 'pr2g'
+    static let cool_down = 70.
+    static let mana_cost = 17
+    static let desc = Color_Define.COLOR_NORMAL + "→能量灌注->|n↑使得你速度增加{0}%|n↑使得你施法后返还{1}%魔法值|n".format((speed_up*100).toString(0), (decrease*100).toString(0)) +
+        "↑使得你的神圣新星技能冷却时间减少到{0}秒|n↓但神圣新星技能有效范围降低为{1}|n↑立即刷新神圣新星的技能CD|n".format(HolyNova.pro_cool_down.toString(1), HolyNova.pro_radius.toString(1)) +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒。|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_WARNING + "★D不会驱散此技能|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    private trigger mana_recovery_trigger_ = CreateTrigger()
+    private timer buff_timer_
+
+    construct(unit u)
+        super(u)
+
+    ondestroy
+        mana_recovery_trigger_..disable().destr()
+
+    override function clear()
+        if buff_timer_ != null
+            buff_timer_.release()
+            buff_timer_ = null
+        if owner_.hasAbility(buff_id)
+            owner_.remove_buff(buff_id)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==PowerInfusion.self_id))
+            ..addAction(function PowerInfusion.cast)
+            ..setData(this castTo int)
+        mana_recovery_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addAction(function PowerInfusion.mana_recovery)
+            ..setData(this castTo int)
+            ..disable()
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo PowerInfusion
+        createUnit(self.owner_.getOwner(), FAKE_CASTER, self.owner_.getPos(), angle(0))
+            ..addAbility(PowerInfusion.help_id)
+            ..issueTargetOrder("bloodlust", self.owner_)
+            ..setTimedLife(1.)
+
+        SoundPlayer.scroll(self.owner_.getPos3Real())
+        flashEffect("scrollyell.mdx", self.owner_.getPos())
+
+        self.owner_..add_buff(buff_id, BuffClearType.stable, BuffType.buffs, self)
+            ..removeAbility(HolyNova.self_id)
+            ..addAbility(HolyNova.help_id)
+        self.mana_recovery_trigger_.enable()
+        self.buff_timer_ = getTimer()..setData(self castTo int)..start(last_time, function on_buff_expired)
+
+    override function on_buff_removed(unit u)
+        if u != owner_
+            return
+        mana_recovery_trigger_.disable()
+        owner_..removeAbility(HolyNova.help_id)
+            ..addAbility(HolyNova.self_id)
+        if buff_timer_ != null
+            buff_timer_.release()
+            buff_timer_ = null
+        
+    static function on_buff_expired()
+        let self = GetExpiredTimer().getData() castTo PowerInfusion
+        if self.owner_.has_buff(buff_id)
+            self.owner_.remove_buff(buff_id)
+        else if self.buff_timer_ != null
+            Log.warn("PowerInfusion buff is removed but timer still exists")
+            self.buff_timer_.release()
+            self.buff_timer_ = null
+
+    static function mana_recovery()
+        let self = GetTriggeringTrigger().getData() castTo PowerInfusion
+        let this_ability = EXGetUnitAbility(self.owner_, GetSpellAbilityId())
+        let mana_recovery = EXGetAbilityDataInteger(this_ability, 1, ABILITY_DATA_COST) * decrease
+        self.owner_.setMana(self.owner_.getMana() + mana_recovery)
+        if mana_recovery > 1
+            flashEffect("Abilities\\Spells\\Items\\AIma\\AImaTarget.mdl", self.owner_.getPos3Real())
+
+@compiletime
+function create_power_infusion()
+    let ed = EditorHelper.create_channel_template(PowerInfusion.self_id, emSkillKey.G)
+    ed..setHotkeyNormal("G")
+        ..setManaCost(1, PowerInfusion.mana_cost)
+        ..setCooldown(1, PowerInfusion.cool_down)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(1)
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(PowerInfusion.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Power Infusion" + Color_Define.COLOR_HOT_KEY + "(G)")
+        ..setTooltipNormalExtended(1, PowerInfusion.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\prg.blp")
+    destroy ed
+
+@compiletime
+function create_power_infusion_buff()
+    let ed = new BuffDefinition(PowerInfusion.buff_id, 'Bhea')
+    ed..setArtTarget(1, "prg.mdx")
+        ..setTargetAttachments(1, 1)
+        ..setTargetAttachmentPoint0(1, "chest")
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Power Infusion")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位充满了能量。")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\prg.blp")
+    destroy ed
+
+@compiletime
+function create_power_infusion_buff_adder()
+    let ed = new AbilityDefinitionBloodlust(PowerInfusion.help_id)
+    ed..setScalingFactor(1, 0.)
+        ..setAttackSpeedIncrease(1, PowerInfusion.speed_up)
+        ..setMovementSpeedIncrease(1, PowerInfusion.speed_up)
+        ..setDurationHero(1, PowerInfusion.last_time)
+        ..setDurationNormal(1, PowerInfusion.last_time)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setBuffs(1, PowerInfusion.buff_id.toRawCode())
+        ..setName("PowerInfusionFaker")
+    destroy ed

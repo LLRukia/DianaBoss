@@ -1,0 +1,54 @@
+package BossSkillHelper
+
+import PlayerUnitHelper
+import TriggerHelper
+
+
+
+public class HatredTargetController
+    private trigger detect= CreateTrigger()
+    private trigger endcast= CreateTrigger()
+    private unit m_u
+    construct(unit u)
+        m_u = u
+        detect..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CHANNEL)
+            ..addCondition(Filter(()->PlayerUnitHelper.get_instance(GetSpellAbilityUnit())!=-1))
+            ..addAction(function change_hatred_target)
+            ..disable()
+            ..setData(this castTo int)
+        endcast..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_ENDCAST)
+            ..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_FINISH)
+            ..addCondition(Filter(()->PlayerUnitHelper.get_instance(GetSpellAbilityUnit())!=-1))
+            ..addAction(function end_hatred)
+            ..disable()
+            ..setData(this castTo int)
+
+    function chaos()
+        run()
+
+    function focus(unit u)
+        pause()
+        m_u.issueTargetOrder("attack", u)
+
+    private function run()
+        detect.enable()
+        endcast.disable()
+
+    private function pause()
+        detect.disable()
+        endcast.disable()
+
+    ondestroy
+        endcast..disable()..destr()
+        detect..disable()..destr()
+
+    private static function change_hatred_target()
+        var obj = GetTriggeringTrigger().getData() castTo HatredTargetController
+        obj.m_u.issueTargetOrder("attack", GetSpellAbilityUnit())
+        obj.endcast.enable()
+        obj.detect.disable()
+
+    private static function end_hatred()
+        var obj = GetTriggeringTrigger().getData() castTo HatredTargetController
+        obj.endcast.disable()
+        obj.detect.enable()

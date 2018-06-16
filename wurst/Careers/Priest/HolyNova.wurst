@@ -1,0 +1,104 @@
+package HolyNova
+
+import Priest
+import TriggerHelper
+import EditorHelper
+import GlobalDefines
+
+public class HolyNova extends PriestSkill
+    static let self_id = 'pr0w'
+    static let help_id = 'pr1w'
+    static let self_name = "HolyNova"
+    static let radius = 550.
+    static let pro_radius = 300.
+    static let dmg = 600.
+    static let inc = 10.
+    static let cool_down = 12.
+    static let pro_cool_down = 3.
+    static let mana_cost = 55
+    static let desc = Color_Define.COLOR_NORMAL + "爆发神圣能量，造成自身为圆心的范围{0}点治疗。|n".format(dmg.toString(1)) + 
+        Color_Define.COLOR_PRIEST + "↑ {0}%法术强度额外治疗|n".format((inc*100).toString(0)) +
+        Color_Define. COLOR_CAST_RANGE + "→有效范围：{0}|n".format(radius.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    static let pro_desc = Color_Define.COLOR_NORMAL + "爆发神圣能量，造成自身为圆心的范围{0}点治疗。|n".format(dmg.toString(1)) + 
+        Color_Define.COLOR_PRIEST + "↑ {0}%法术强度额外治疗|n".format((inc*100).toString(0)) +
+        Color_Define. COLOR_CAST_RANGE + "→有效范围：{0}|n".format(pro_radius.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(pro_cool_down.toString(1))
+    private trigger pro_trigger_ = CreateTrigger()
+    construct(unit u)
+        super(u)
+    ondestroy
+        pro_trigger_..disable().destr()
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==HolyNova.self_id))
+            ..addAction(function HolyNova.cast)
+            ..setData(this castTo int)
+        pro_trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==HolyNova.help_id))
+            ..addAction(function HolyNova.cast_pro)
+            ..setData(this castTo int)
+
+    static function judge_and_do_heal(unit caster, unit target)
+        if IsUnitAlly(target, GetOwningPlayer(caster)) and target.isAlive()
+            let final_dmg = dmg + inc*GetHeroAgi(caster, true)
+            let prev_hp = target.getHP()
+            target.setHP(prev_hp + final_dmg)
+            target.addEffect("Abilities\\Spells\\Human\\Heal\\HealTarget.mdl", "chest").destr()
+            StatisticsHelper.add_real(caster.getOwner(), prev_hp - target.getHP())
+
+
+    static function cast()
+        let self = GetTriggeringTrigger().getData() castTo HolyNova
+        let pos = self.owner_.getPos() + POS_CORRECTION
+        flashEffect("prw.mdx", pos, HolyNova.radius / HolyNova.pro_radius)
+        let g = CreateGroup()
+        g.enumUnitsInRange(pos, radius + AREA_DMG_CORRECTION)
+        for i in g
+            judge_and_do_heal(self.owner_, i)
+        g.destr()
+
+    static function cast_pro()
+        let self = GetTriggeringTrigger().getData() castTo HolyNova
+        let pos = self.owner_.getPos() + POS_CORRECTION
+        flashEffect("prw.mdx", pos)
+        let g = CreateGroup()
+        g.enumUnitsInRange(pos, pro_radius + AREA_DMG_CORRECTION)
+        for i in g
+            judge_and_do_heal(self.owner_, i)
+
+        g.destr()
+
+
+@compiletime
+function create_holy_nova()
+    let editor = EditorHelper.create_channel_template(HolyNova.self_id, emSkillKey.W)
+    editor..setManaCost(1, HolyNova.mana_cost)
+        ..setCooldown(1, HolyNova.cool_down)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("W")
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(HolyNova.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Holy Nova" + Color_Define.COLOR_HOT_KEY + "(W)")
+        ..setTooltipNormalExtended(1, HolyNova.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\prw.blp")
+
+    destroy editor
+
+@compiletime
+function create_holy_nova_pro()
+    let editor = EditorHelper.create_channel_template(HolyNova.help_id, emSkillKey.W)
+    editor..setManaCost(1, HolyNova.mana_cost)
+        ..setCooldown(1, HolyNova.pro_cool_down)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("W")
+        ..setTargetType(1, emTargetType.None castTo int)
+        ..setName(HolyNova.self_name)
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Holy Nova" + Color_Define.COLOR_HOT_KEY + "(W)")
+        ..setTooltipNormalExtended(1, HolyNova.pro_desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\prw2.blp")
+
+    destroy editor

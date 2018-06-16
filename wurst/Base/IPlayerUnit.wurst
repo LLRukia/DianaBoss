@@ -1,0 +1,32 @@
+package IPlayerUnit
+import NoWurst
+import public Buffs
+import public BaseSkills
+import public GlobalDefines
+
+public abstract class IPlayerUnit
+    protected unit uself_
+    protected player pself_
+    protected career career_type_
+    protected boolean is_invulnerable_ = false
+
+    abstract function listen_all()
+
+    abstract function init_self()
+
+    abstract function add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills obj)
+
+    abstract function remove_buff(BuffClearType cltp, BuffType tp)
+
+    abstract function remove_buff(int id)
+
+    abstract function has_buff(int id) returns bool
+
+    abstract function is_invulnerable() returns boolean
+
+    abstract function set_invulnerable(boolean _b)
+
+    function get_career() returns career
+        return career_type_
+
+    abstract function refresh()

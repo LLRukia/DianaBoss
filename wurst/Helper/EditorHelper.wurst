@@ -1,0 +1,289 @@
+package EditorHelper
+
+import NoWurst
+import public AbilityObjEditing
+import public ObjectIds
+import public Colors
+import public BuffObjEditing
+import GlobalDefines
+/*
+附加点: 
+hand 手
+foot 脚
+real 后肢(四足生物)
+weapon 武器 
+left right 修饰手脚等附加点,添加在前面和后面都可以
+head 头部
+overhead 头顶
+chest 胸部
+origin 脚底 
+turret 炮塔头部
+mount 坐骑头部
+eattree 吃树时树的附加点所在位置 
+rally 聚集点(设置聚集点在该单位身上时的聚集点附加位置)
+sprite 只有血法和建筑物有该附加点 
+first second third fourth fifth sixth 修饰sprite的后缀
+*/
+
+/** None:无目标 Unit:单位 Ground:地面*/
+public enum emTargetType
+    None
+    Unit
+    Ground
+    GroundorUnit
+
+public enum emSkillKey
+    Q
+    W
+    E
+    R
+    D
+    F
+    G
+
+public let ORDERS = ["doom", "channel", "polymorph", "bloodlust", "divineshield", "magicleash", "blizzard"]
+
+
+class EditorHelper
+    static let attack1_animation_dp = 0.2
+    static let attack1_animation_swing_dp = 0.2
+
+    static function create_effect_faker_skill(int id, string effect_path)
+        let s_editor = new AbilityDefinitionIllidanChannel(id)
+        s_editor..setArtEffect(effect_path)
+            ..setHotkeyNormal("")
+            ..setArtCaster("")
+            ..setHeroAbility(false)
+            ..setLevels(1)
+            ..setCooldown(1, 0)
+            ..setManaCost(1, 0)
+            ..setCastRange(1, 99999)
+            ..setCastingTime(1, 0)
+            ..setTargetType(1, 2)
+            ..setArtDuration(1, 0)
+            ..setFollowThroughTime(1, 0)
+            ..setOptions(1, 1)
+            ..setName(id.toRawCode())
+        destroy s_editor
+
+    static function create_caster_faker_unit(int id, real size) returns UnitOrBuildingOrHeroDefinition
+        let u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
+        u_editor..setScalingValue(size)
+            ..setSpeedBase(1)
+            ..setScaleProjectiles(true)
+            ..setTurnRate(3)
+            ..setManaMaximum(9999)
+            ..setManaRegeneration(9999.)
+            ..setManaInitialAmount(9999)
+            ..setHitPointsMaximumBase(9999)
+            ..setNormalAbilities("Aloc")
+            ..setShadowImageUnit("")
+            ..setShadowTextureBuilding("")
+            ..setHasWaterShadow(false)
+            ..setShadowImageCenterX(0.)
+            ..setShadowImageCenterY(0.)
+            ..setShadowImageHeight(0.)
+            ..setShadowImageWidth(0.)
+            ..setName(id.toRawCode())
+            ..setModelFile(".mdl")
+            ..setUnitClassification("")
+            ..setAnimationCastPoint(0)
+            ..setAnimationCastBackswing(0)
+        return u_editor
+
+    static function create_effect_faker_unit(int id, real size, string effect_path, color cl) returns UnitOrBuildingOrHeroDefinition
+        let u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
+        u_editor..setScalingValue(size)
+            ..setSpeedBase(1)
+            ..setHitPointsMaximumBase(9999)
+            ..setNormalAbilities("Aloc,Arav")
+            ..setTintingColorRed(cl.red)
+            ..setTintingColorBlue(cl.blue)
+            ..setTintingColorGreen(cl.green)
+            ..setShadowImageUnit("")
+            ..setShadowTextureBuilding("")
+            ..setHasWaterShadow(false)
+            ..setShadowImageCenterX(0.)
+            ..setShadowImageCenterY(0.)
+            ..setShadowImageHeight(0.)
+            ..setShadowImageWidth(0.)
+            ..setName(id.toRawCode())
+            ..setAnimationCastPoint(0.)
+            ..setAnimationCastBackswing(0.)
+            ..setFoodCost(0)
+            ..setModelFile(effect_path)
+            ..setUnitClassification("")
+            ..setAttacksEnabled(0)
+            ..setCanFlee(false)
+            ..setSightRadiusDay(0)
+            ..setSightRadiusNight(0)
+        return u_editor
+
+    
+    static function create_channel_template(int id, emSkillKey k) returns AbilityDefinitionIllidanChannel
+        let base_order = ORDERS[k castTo int]
+        let s_editor = new AbilityDefinitionIllidanChannel(id)
+        s_editor..setOptions(1, 1)
+            ..setArtTarget("")
+            ..setArtEffect("")
+            ..setTargetAttachmentPoint("")
+            ..setArtCaster("")
+            ..setCasterAttachmentPoint("")
+            ..setHeroAbility(false)
+            ..setLevels(1)
+            ..setCastingTime(1, 0)
+            ..setArtDuration(1, 0)
+            ..setFollowThroughTime(1, 0)
+            ..setOptions(1, 1)
+            ..setBaseOrderID(1, base_order)
+            ..setOrderStringUseTurnOn(base_order)
+            ..setDisableOtherAbilities(1,false)
+
+        return s_editor
+
+    static function create_cripple_template(int id, real duration, int buf) returns AbilityDefinitionCripplecreep
+        let s_editor = new AbilityDefinitionCripplecreep(id)
+        s_editor..setDamageReduction(1, 0.)
+            ..setAttackSpeedReduction(1, 0.)
+            ..setMovementSpeedReduction(1, 0.)
+            ..setDurationHero(1, duration)
+            ..setDurationNormal(1, duration)
+            ..setBuffs(1, buf.toRawCode())
+            ..setCastRange(1, 99999)
+            ..setManaCost(1, 0)
+            ..setCooldown(1, 0)
+            ..setTargetsAllowed(1, TYPE_ALLOWED_ALL)
+
+
+
+        return s_editor
+
+    static function create_aura(int id) returns AbilityDefinition
+        let s_editor = new AbilityDefinitionItemAuraEndurance(id)
+        s_editor..setMovementSpeedIncrease(1, 0)
+            ..setAttackSpeedIncrease(1, 0)
+            ..setHeroAbility(false)
+            ..setTargetsAllowed(1, "self")
+
+        return s_editor
+
+    static function create_magic_book(int id, string spell_list) returns AbilityDefinition
+        let s_editor = new AbilityDefinitionSpellBook(id)
+        s_editor..setMinimumSpells(1, 1)
+            ..setSpellList(1, spell_list)
+            ..setLevels(1)
+
+        return s_editor
+
+    static function create_template_hero(int id) returns HeroDefinition
+        let u_editor = new HeroDefinition(id, 'Hjai')
+        u_editor..setHeroAbilities("")
+            ..setDefaultActiveAbility("")
+            ..setCollisionSize(24.)
+            ..setScalingValue(1)
+            ..setScaleProjectiles(true)
+            ..setSelectionScale(0.9)
+            ..setDeathTimeseconds(0.1)
+            ..setSpeedBase(220)
+            ..setTurnRate(3)
+            ..setSpeedMinimum(90)
+            ..setAcquisitionRange(700)
+            ..setAttack1AreaofEffectTargets(TYPE_ALLOWED_ENEMY)
+            ..setAttack1AnimationDamagePoint(attack1_animation_dp)
+            ..setAttack1AnimationBackswingPoint(attack1_animation_swing_dp)
+            ..setAttack1CooldownTime(2.2)
+            ..setAttack1Range(700)
+            ..setAttack1ProjectileSpeed(1300)
+            ..setAttack1RangeMotionBuffer(700.)
+            ..setAttack1DamageBase(24)
+            ..setAttack1DamageSidesperDie(1)
+            ..setAttack1DamageNumberofDice(1)
+            ..setAttacksEnabled(1)
+            ..setLevel(1)
+            ..setGoldCost(0)
+            ..setLumberCost(0)
+            ..setBuildTime(0)
+            ..setRepairGoldCost(0)
+            ..setRepairLumberCost(0)
+            ..setRepairTime(0)
+            ..setManaMaximum(200)
+            ..setManaRegeneration(1)
+            ..setHitPointsMaximumBase(3000)
+            ..setHitPointsRegenerationRate(0)
+            ..setSightRadiusDay(0)
+            ..setSightRadiusNight(0)
+            ..setStartingStrength(0)
+            ..setStartingAgility(0)
+            ..setStartingIntelligence(0)
+            ..setStrengthPerLevel(0)
+            ..setIntelligencePerLevel(0)
+            ..setAgilityPerLevel(0)
+            ..setHideMinimapDisplay(true)
+            ..hideHeroDeathMsg(true)
+            ..setCanFlee(false)
+            ..hideHeroInterfaceIcon(true)
+            ..hideHeroMinimapDisplay(true)
+            ..setTargetedAs("ground")
+            ..setArmorType(ArmorType.Unarmored)
+
+        return u_editor
+
+    static function create_permanent_invisblility()
+        let ed = new AbilityDefinitionPermanentInvisibility('bAnA')
+        ed..setAutoAcquireAttackTargets(1, false)
+            ..setDurationHero(1, -1)
+            ..setDurationNormal(1, -1)
+        destroy ed
+
+    static function create_boss_ranged(int id) returns UnitDefinition
+        let ed = new UnitDefinition(id, 'uktn')
+        ed..setCollisionSize(72.)
+            ..setUnitSoundSet("")
+            ..setNameEditorSuffix("")
+            ..setScalingValue(2.5)
+            ..setScaleProjectiles(true)
+            ..setAttack1ProjectileSpeed(600)
+            ..setSelectionScale(3.1)
+            ..setArtSpecial("")
+            ..setTurnRate(3)
+            ..setAcquisitionRange(5000.)
+            ..setAttack1RangeMotionBuffer(0.)
+            ..setAttack1AnimationDamagePoint(attack1_animation_dp)
+            ..setAttack1AnimationBackswingPoint(0.28)
+            ..setAttack1CooldownTime(0.5)
+            ..setAttack1Range(5000)
+            ..setAttack1DamageSidesperDie(1)
+            ..setAttack1DamageNumberofDice(1)
+            ..setAttacksEnabled(1)
+            ..setAttack1DamageFactorSmall(0.2)
+            ..setAttack1AreaofEffectSmallDamage(100)
+            ..setAttack1AreaofEffectFullDamage(25)
+            ..setAttack1AreaofEffectMediumDamage(26)
+            ..setAttack1DamageFactorMedium(0.5)
+            ..setAttack1WeaponType(WeaponType.Artillery)
+            ..setAttack1TargetsAllowed(TYPE_ALLOWED_ENEMY)
+            ..setAttack1AttackType(AttackType.Chaos)
+            ..setLevel(1)
+            ..setUnitClassification("")
+            ..setGoldCost(0)
+            ..setLumberCost(0)
+            ..setBuildTime(0)
+            ..setRepairGoldCost(0)
+            ..setRepairLumberCost(0)
+            ..setRepairTime(0)
+            ..setHitPointsRegenerationRate(0.)
+            ..setSightRadiusDay(4000)
+            ..setSightRadiusNight(4000)
+            ..setHideMinimapDisplay(true)
+            ..setCanFlee(false)
+            ..setManaRegeneration(0)
+            ..setManaInitialAmount(0)
+            ..setArmorSoundType(ArmorSound.Metal)
+            ..setArmorType(ArmorType.Hero)
+            ..setTargetedAs("ground")
+            ..setTintingColorRed(255)
+            ..setTintingColorBlue(255)
+            ..setTintingColorGreen(255)
+            ..setSpeedBase(0)
+            ..setPropulsionWindowdegrees(0)
+        return ed

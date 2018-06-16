@@ -1,0 +1,99 @@
+package DivineAegis
+
+import Priest
+import AbilityObjEditing
+import ObjectIds
+import BuffObjEditing
+import TriggerHelper
+import SkillHelper
+import TimerUtils
+import PlayerUnit
+import Assert
+
+public class DivineAegis extends PriestSkill
+    static let self_id = 'pr0d'
+    static let last_time = 1.5
+    static let self_name = "DivineAegis"
+    static let buff_id = 'prdd'
+    static let mana_cost = 5
+    static let cool_down = 12.
+    static let desc = Color_Define.COLOR_NORMAL + "↑神圣庇护|n" +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒。|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_WARNING + "★使用此技能会消除掉大部分魔法效果。|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+    private timer last_timer_
+    private Invulnerability buff_ = null
+    construct(unit u)
+        super(u)
+
+    override function listen()
+        trigger_..registerUnitEvent(owner_, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==DivineAegis.self_id))
+            ..addAction(function DivineAegis.cast)
+            ..setData(this castTo int)
+
+
+    override function on_buff_removed(unit u)
+        if not assert(u == owner_, "D buff error, unit not matched")
+            return
+
+        if buff_ != null
+            destroy buff_
+            buff_ = null
+            (PlayerUnitHelper.get_instance(owner_) castTo PlayerUnit).set_invulnerable(false)
+
+    static function cast()
+        var self = GetTriggeringTrigger().getData() castTo DivineAegis
+        self.buff_ = SkillHelper.protect(self.owner_)
+        self.owner_.remove_buff(BuffClearType.additions, BuffType.buffs)
+        self.owner_.remove_buff(BuffClearType.additions, BuffType.debuffs)
+        self.owner_.add_buff(DivineAegis.buff_id, BuffClearType.stable, BuffType.buffs, self)
+        (PlayerUnitHelper.get_instance(self.owner_) castTo PlayerUnit).set_invulnerable(true)
+        self.last_timer_ = getTimer()
+        self.last_timer_..setData(self castTo int)
+            ..startPeriodic(DivineAegis.last_time, function on_buff_expired)
+    
+    static function on_buff_expired()
+        let self = GetExpiredTimer().getData() castTo DivineAegis
+        self.clear()
+    
+    override function clear()
+        if last_timer_ != null
+            last_timer_.release()
+            last_timer_ = null
+        owner_.remove_buff(DivineAegis.buff_id)
+
+@compiletime
+function create_divine_aegis()
+    let ed = new AbilityDefinitionBeserk(DivineAegis.self_id)
+    ed..setLevels(1)
+        ..setHotkeyNormal("D")
+        ..setDamageTakenIncrease(1, 0)
+        ..setMovementSpeedIncrease(1, 0)
+        ..setAttackSpeedIncrease(1, 0)
+        ..setDurationHero(1, DivineAegis.last_time)
+        ..setDurationNormal(1, DivineAegis.last_time)
+        ..setManaCost(1, DivineAegis.mana_cost)
+        ..setCooldown(1, DivineAegis.cool_down)
+        ..setButtonPositionNormalX(1)
+        ..setButtonPositionNormalY(1)
+        ..setName(DivineAegis.self_name)
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_PRIEST + "Divine Aegis" +
+            Color_Define.COLOR_HOT_KEY + "(D)")
+        ..setTooltipNormalExtended(1, DivineAegis.desc)
+        ..setIconNormal("replaceabletextures\\commandbuttons\\prd.blp")
+        ..setBuffs(1, DivineAegis.buff_id.toRawCode())
+    destroy ed
+    
+@compiletime
+function create_ice_shield_buff()
+    let ed = new BuffDefinition(DivineAegis.buff_id, 'Bbsk')
+    ed..setArtTarget(1, "Abilities\\Spells\\Items\\StaffOfSanctuary\\Staff_Sanctuary_Target.mdl")
+        ..setTargetAttachments(1, 1)
+        ..setTargetAttachmentPoint0(1, "chest")
+        ..setTooltipNormal(1, Color_Define.COLOR_PRIEST + "Divine Aegis")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位免疫伤害。")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\prd.blp")
+    destroy ed
+    

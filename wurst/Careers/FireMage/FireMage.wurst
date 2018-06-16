@@ -1,0 +1,65 @@
+package FireMage
+
+import public PlayerUnitHelper
+import public FireMageSkill
+import EditorHelper
+import PlayerUnit
+
+public class FireMage extends PlayerUnit
+    static let model_file = "units\\creeps\\HumanMage\\HumanMage"
+
+    construct(player pl, unit u)
+        super(pl, u)
+        career_type_ = fire_mage
+
+    override function init_self() 
+        // m_ls_skill.add(new IceBarrier(m_self_unit))
+        // m_ls_skill.add(new IceLance(m_self_unit))
+        // m_ls_skill.add(new IceStomp(m_self_unit))
+        // m_ls_skill.add(new FrostBolt(m_self_unit))
+        // m_ls_skill.add(new IceSpirit(m_self_unit))
+        // m_ls_skill.add(new IceImage(m_self_unit))
+        // m_ls_skill.add(new IceShield(m_self_unit))
+
+    override function refresh()
+        super.refresh()
+        // m_self_unit..removeAbility(IceBarrier.self_id)..addAbility(IceBarrier.self_id)
+        //     ..removeAbility(IceLance.self_id)..removeAbility(IceLance.help_id)..addAbility(IceLance.self_id)
+        //     ..removeAbility(IceImage.self_id)..addAbility(IceImage.self_id)
+        //     ..removeAbility(IceShield.self_id)..addAbility(IceShield.self_id)
+        //     ..removeAbility(IceStomp.self_id)..addAbility(IceStomp.self_id)
+
+@compiletime
+function create_arcane_mage()
+    var editor = EditorHelper.create_template_hero(FIRE_MAGE)
+    string am_skill_list = "" +
+        ",fmau,AInv,bAnA"
+
+    editor..setNormalAbilities(am_skill_list)
+        ..setUnitSoundSet("SpellBreaker")
+        ..setProperNames(Color_Define.COLOR_FIREMAGE + "火法")
+        ..setName("火法")
+        ..setModelFile(FireMage.model_file)
+        ..setArtSpecial(FireMage.model_file)
+        ..setAttack1ProjectileArt("Abilities\\Weapons\\BloodElfMissile\\BloodElfMissile.mdl")
+        ..setAttack1AttackType(AttackType.Magic)
+        ..setPrimaryAttribute("INT")
+
+
+@compiletime
+function create_am_au()
+    var editor = EditorHelper.create_aura('fmau')
+    editor..setArtTarget("")
+        ..setName("fm")
+        ..setBuffs(1, "fmid")
+        ..setButtonPositionNormalX(0)
+        ..setButtonPositionNormalY(-11)
+    destroy editor
+
+@compiletime
+function create_am_id()
+    var editor = new BuffDefinition('fmid', 'Bdet')
+    editor..setName(1, "FireMage")
+        ..setTooltipNormal(1, Color_Define.COLOR_NORMAL + "Fire Mage")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_FIREMAGE + "Power!")
+        ..setIconNormal(1, "replaceabletextures\\commandbuttons\\FM.blp")

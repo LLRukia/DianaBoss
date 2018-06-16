@@ -1,0 +1,148 @@
+package ManipulatingEnergy
+
+import IBoss
+import SkillHelper
+import EditorHelper
+import ClosureTimers
+import PlayerHelper
+import PlayerUnitHelper
+import SoundUtils
+import MathHelper
+
+public class ManipulatingEnergy extends IBossSkill
+    static let faker_id = 'bs11'
+    static let break_time = 6.
+    static let sdhit = new SoundDefinition(Sounds.thunderclapCaster1, false, true)
+    static let sd = new SoundDefinition(Sounds.tomes, false, true)
+    private bool m_bcd = true
+    private CallbackPeriodic m_detect = null
+    private unit m_faker
+    private unit m_ut
+    construct(IBoss owner)
+        super(owner)
+        priority = 50
+
+    ondestroy
+    
+    override function cast()
+        unit uc = m_owner.m_self_unit
+        BossHelper.create_skill_text(uc.getPos(), "- 能量操纵 -", SkillTextColor.normal)
+        m_bcd = false
+        doAfter(60.) ->
+            m_bcd = true
+        group g = CreateGroup()
+        for i = 0 to PLAYER_NUM - 1
+            unit u = players[i].get_unit()
+            if u.isAlive()
+                g.add(u)
+        m_ut = g.getRandomUnit()
+        uc..pause()..setAnimation("stand,channel").setFacing(uc.getPos().angleTo(m_ut.getPos()))
+        real ang = -30.
+        real r = 600
+        real interval = 0.33 - (CUR_MODE + 1) * 0.04
+        
+        for i = 0 to 5
+            ang += 60
+            vec2 pos =  MathHelper.coor_polar2abso(r, ang + uc.getFacing()) + uc.getPos()
+            flashEffect("Abilities\\Spells\\Undead\\DeathandDecay\\DeathandDecayTarget.mdl", pos)
+            location lc = Location(pos.x, pos.y)
+            TerrainDeformationWaveBJ(interval, lc, lc, 256, 96, 0)
+            RemoveLocation(lc)
+        
+        int times = 0
+        doPeriodically(interval) cb->
+            if not m_ut.isAlive()
+                g.removeUnit(m_ut)
+                m_ut = g.getRandomUnit()
+                while not m_ut.isAlive() and not g.isEmpty()
+                    g.removeUnit(m_ut)
+                    m_ut = g.getRandomUnit()
+                if g.isEmpty()
+                    destroy cb
+                    g.destr()
+            
+            if m_ut.isAlive()
+                sd.playOnPoint(uc.getPos3Real())
+                if times mod 3 == 0
+                    uc.setAnimation("spell")
+                
+                r -= 50
+                for i = 0 to 5
+                    ang += 60
+                    vec2 pos =  MathHelper.coor_polar2abso(r, ang + uc.getFacing()) + uc.getPos()
+                    flashEffect("Abilities\\Spells\\Undead\\DeathandDecay\\DeathandDecayTarget.mdl", pos)
+                    location lc = Location(pos.x, pos.y)
+                    TerrainDeformationWaveBJ(interval, lc, lc, 256, 96, 0)
+                    RemoveLocation(lc)
+
+                times ++
+                if times >= 11
+                    destroy cb
+                    g.destr()
+                    cast_()
+            
+    function cast_()
+        m_owner.m_self_unit..setAnimation("attack")
+                            ..setFacing(m_owner.m_self_unit.getPos().angleTo(m_ut.getPos()))
+        doAfter(0.7) ->
+            m_owner.m_self_unit.unpause()
+            m_owner.get_atk_ctrl().chaos()
+            endcast()
+        
+        m_faker = createUnit(m_owner.m_onwer, faker_id, m_owner.m_self_unit.getPos(), m_owner.m_self_unit.getFacing().fromDeg())
+        doPeriodically(0.09) cb->
+            if not m_ut.isAlive()
+                m_faker.kill()
+                destroy cb
+
+            vec2 pos = m_faker.getPos()
+            let ang = pos.angleTo(m_ut.getPos())
+            pos = MathHelper.forward(pos, ang, 44)
+            m_faker..setXY(pos).setFacing(ang)
+            group g = CreateGroup()
+            g.enumUnitsInRange(pos, 70)
+            unit tar = null
+            real fmin = 9999
+            for i in g
+                if i.isAlive() and PlayerUnitHelper.get_instance(i) != -1
+                    if fmin > (i.getPos() - pos).lengthSq()
+                        fmin = (i.getPos() - pos).lengthSq()
+                        tar = i
+            g.destr()
+            if tar != null
+                m_faker.kill()
+                flashEffect("", tar.getPos())
+                destroy cb
+                sdhit.playOnPoint(tar.getPos3Zero())
+                group gg = CreateGroup()
+                gg.enumUnitsInRange(tar.getPos(), 70)
+                for ii in gg
+                    if ii.isAlive()
+                        SkillHelper.rush(ii, ang.asAngleDegrees(), 250, 50, false, ".mdl")
+                        m_owner.m_self_unit.damageTarget(ii, 2000.)
+                gg.destr()
+
+    override function detect()
+        m_detect = doPeriodically(1) cb->
+            priority += 1.2
+
+    override function stop_detect()
+        if m_detect != null
+            destroy m_detect
+            m_detect = null
+
+    override function stop_cast()
+        
+
+
+    override function get_break() returns real
+        return break_time
+
+    override function judge() returns bool
+        return m_owner.m_self_unit.getMana() < 700 and m_bcd
+
+@compiletime
+function create_manipulatingenergy_faker()
+    var ed = EditorHelper.create_effect_faker_unit(ManipulatingEnergy.faker_id, 3., "Abilities\\Weapons\\BlackKeeperMissile\\BlackKeeperMissile.mdl", color(255,255,255))
+    ed.setMovementHeight(150)
+    destroy ed

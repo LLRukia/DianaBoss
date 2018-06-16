@@ -1,0 +1,119 @@
+package TimerUtils
+import NoWurst
+import Table
+import ErrorHandling
+import Basics
+import public Timer
+
+/* Basic Timer Recycling and data attachment */
+
+timer array freeTimers
+int freeTimersCount = 0
+constant timerData = new Table()
+constant HELD = 0x28829022
+
+/** Attach Data to this timer */
+public function timer.setData(int data)
+	timerData.saveInt(this.getHandleId(), data)
+
+/** Retrieve the data attached to this timer */
+public function timer.getData() returns int
+	return timerData.loadInt(this.getHandleId())
+
+/** Get a new timer. Use this instead of "CreateTimer".
+You can attach data to the timer with .setData and retrieve it with .getData
+If you're done with the timer, release it with .release */
+public function getTimer() returns timer
+	if freeTimersCount > 0
+		freeTimersCount--
+		freeTimers[freeTimersCount].setData(0)
+		return freeTimers[freeTimersCount]
+	else
+		return CreateTimer()..setData(0)
+
+/** Release the timer. Use this instead of "DestroyTimer" ! */
+public function timer.release()
+	if this == null
+		error("Trying to release a null timer")
+		return
+	if this.getData() == HELD
+		error("ReleaseTimer: Double free!")
+		return
+	this.setData(HELD)
+	this.pause()
+	freeTimers[freeTimersCount] = this
+	freeTimersCount++
+
+
+timer timedLoopTimer = CreateTimer()
+trigger timedLoopTrig = CreateTrigger()
+int conditionCount = 0
+
+function evaluateTimedLoopTrig()
+	TriggerEvaluate(timedLoopTrig)
+	if conditionCount == 0
+		timedLoopTimer.pause()
+
+enum Mode
+	RUNNING
+	PAUSED
+	STOPPED
+	STOPPED_FOR_GOOD
+
+public module TimedLoop
+	static private thistype array instances		// The array
+	static private int instanceCount = 0	// The count
+	static private triggercondition triggerCond = null // the triggerCondition for this
+	static private conditionfunc cond = Condition(function onExpire)
+
+	private Mode mode = Mode.PAUSED
+
+	abstract function onTimedLoop()
+
+	private static function onExpire() returns boolean
+		int i = instanceCount - 1
+		while i >= 0
+			thistype t = instances[i]
+
+			if t.mode != Mode.RUNNING
+				instanceCount--
+				instances[i] = instances[instanceCount]
+				if t.mode == Mode.STOPPED_FOR_GOOD
+					t.mode = Mode.PAUSED
+					destroy t
+				else
+					t.mode = Mode.PAUSED
+			else
+				t.onTimedLoop()
+			i--
+		if instanceCount == 0
+			TriggerRemoveCondition(timedLoopTrig, triggerCond)
+			triggerCond = null
+			conditionCount--
+		return false
+
+	/* Just stops the periodic update of this object. */
+	function stopTimedLoop()
+		mode = Mode.STOPPED
+
+	/* Stops the periodic update and destroys the object. */
+	function stopTimedLoopAndDestroy()
+		mode = Mode.STOPPED_FOR_GOOD
+
+	/* Starts the periodic updates for this object */
+	function startTimedLoop()
+		instances[instanceCount] = this
+		instanceCount++
+		if instanceCount == 1
+			if triggerCond == null
+				triggerCond = TriggerAddCondition(timedLoopTrig, cond)
+				conditionCount++
+				if conditionCount == 1
+					timedLoopTimer.startPeriodic(ANIMATION_PERIOD, function evaluateTimedLoopTrig)
+		mode = Mode.RUNNING
+
+	ondestroy
+		if mode != Mode.PAUSED
+			stopTimedLoop()
+			Log.warn("Destroyed Instance using TimedLoop before stopping the Loop")
+

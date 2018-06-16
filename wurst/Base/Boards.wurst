@@ -1,0 +1,91 @@
+package Boards
+
+import PlayerUnitHelper
+import PlayerHelper
+import PlayerUnit
+import IBoss
+
+public class PlayerBoard
+    multiboard self = CreateMultiboard()
+
+    function set_title(string s)
+        self.setTitle("Player Info           " + s)
+
+    ondestroy
+        self.destr()
+
+    construct()
+        self.setTitle("Player Info")
+        self.setRowCount(PLAYER_NUM + 2)
+        self.setColumnCount(5)
+        for i = 0 to PLAYER_NUM + 1
+            for j = 0 to 4
+                let itm = self.getItem(i, j)
+                itm..setStyle(true, false)
+                ..setValue("")
+            
+        for i = 0 to PLAYER_NUM
+            self.getItem(i, 0).setWidth(0.05)
+            self.getItem(i, 1).setWidth(0.03)
+            self.getItem(i, 2).setWidth(0.03)
+            self.getItem(i, 3).setWidth(0.03)
+            self.getItem(i, 4).setWidth(0.03)
+
+
+        self.getItem(0, 0).setValue("玩家名称")
+        self.getItem(0, 1).setValue("职业")
+        self.getItem(0, 2).setValue("死亡次数")
+        self.getItem(0, 3).setValue("伤害")
+        self.getItem(0, 4).setValue("治疗")
+
+        for i = 1 to PLAYER_NUM
+            self.getItem(i, 0)..setValueColor(players[i-1].getColor().toColor().withAlpha(255))..setValue(playernames[i-1])
+            self.getItem(i, 2)..setValue("0")..setValueColor(128, 255, 255, 255)
+            self.getItem(i, 3)..setValue("0")..setValueColor(255, 88, 9, 255)
+            self.getItem(i, 4)..setValue("0")..setValueColor(255, 211, 6, 255)
+
+        self.getItem(PLAYER_NUM + 1, 0)
+            ..setValue("下一关Boss:")..setWidth(0.06)
+        self.getItem(PLAYER_NUM + 1, 1)..setValueColor(255, 181, 181, 255)..setWidth(0.08)
+        self.getItem(PLAYER_NUM + 1, 2)..setValueColor(147, 255, 147, 255).setWidth(0.03)
+        self.getItem(PLAYER_NUM + 1, 3)..setWidth(0.)
+        self.getItem(PLAYER_NUM + 1, 4)..setWidth(0.)
+        self.display(false)
+
+    function refresh_boss()
+        self.getItem(PLAYER_NUM + 1, 1).setValue(BossHelper.map_boss.get(BossHelper.cur_boss_index + 1).get_name())
+
+    function refresh_time(int n)
+        self.getItem(PLAYER_NUM + 1, 2).setValue(n.toString())
+        
+    function show(bool bShow)
+        if bShow
+            for i = 1 to PLAYER_NUM
+                self.getItem(i, 2).setValue(StatisticsHelper.death.m_data[i-1].toInt().toString())
+                self.getItem(i, 3).setValue(StatisticsHelper.dmgo.m_data[i-1].toInt().toString())
+                self.getItem(i, 4).setValue(StatisticsHelper.hlo.m_data[i-1].toInt().toString())
+        self.display(bShow)
+
+    function refresh_career(int i)
+        let u = players[i].get_unit()
+        let obj = PlayerUnitHelper.get_instance(u) castTo PlayerUnit
+        self.getItem(i+1, 1)..setValue(CAREER_COLORS[obj.get_career() castTo int] + u.getName())
+
+public class BossBoard
+    multiboard self = CreateMultiboard()
+    construct()
+        self.setTitle("Boss Info")
+        self.display(false)
+    ondestroy
+        self.destr()
+    function show(bool bShow)
+        self.display(bShow)
+
+    function change_state(BossState st)
+        switch st
+            case ignore
+            case calm
+            case trouble
+            case wrath
+            case frenzy
+            case infinity
