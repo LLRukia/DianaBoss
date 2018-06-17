@@ -1,0 +1,22 @@
+package ForstBolt
+import IceMage
+
+public class ForstBolt extends IceMageSkill
+	static constant int self_id = 'A009'
+	static constant real dmg = 220.
+	//static constant int buff_id = 'B001'
+	
+	construct(unit u)
+		super(u)
+
+	override function listen()
+		tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+			..addCondition(Filter(()->GetSpellAbilityId()==ForstBolt.self_id))
+			..addAction(function skill_act_forwarding)
+
+	
+	override function cast()
+		m_self_unit.damageTarget(GetSpellTargetUnit(), ForstBolt.dmg, ATTACK_TYPE_NORMAL)
+
+	override function get_self_id() returns int
+		return ForstBolt.self_id

@@ -1,0 +1,19 @@
+package MathHelper
+import NoWurst
+import Vectors
+
+public class MathHelper
+    static function forward(vec2 pt1, vec2 pt2, real offset) returns vec2
+        real fAngle = Atan2BJ(pt2.y - pt1.y, pt2.x - pt1.x)
+        return MathHelper.forward(pt1, fAngle, offset)
+    
+    static function forward(vec2 pt, real ang, real offset) returns vec2
+        return vec2(pt.x + offset*CosBJ(ang), pt.y + offset*SinBJ(ang))
+    
+    static function forward(vec2 pt, angle ang, real offset) returns vec2
+        return vec2(pt.x + offset*(ang.cos()), pt.y + offset*(ang.sin()))
+
+    static function get_direction(vec2 pt1, vec2 pt2) returns angle
+        return Atan2BJ(pt2.y - pt1.y, pt2.x - pt1.x).fromDeg()
+
+    private construct()

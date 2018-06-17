@@ -1,0 +1,19 @@
+package Skills
+import NoWurst
+
+public abstract class ISkill
+    protected unit m_self_unit = null
+    protected trigger tr_self = null
+    construct(unit u)
+        m_self_unit = u
+        tr_self = CreateTrigger()
+
+    ondestroy
+        DisableTrigger(tr_self)
+        DestroyTrigger(tr_self)
+
+    abstract function cast()
+        
+    abstract function listen()
+
+    abstract function get_self_id() returns int

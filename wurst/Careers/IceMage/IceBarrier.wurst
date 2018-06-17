@@ -3,11 +3,10 @@ import IceMage
 import TimerUtils
 import ExternalDefines
 import HashMap
-import KeyHelper
+import TriggerHelper
 
 class Data
     construct (unit uTarget)
-        mapInstance = new HashMap<unit, IceBarrier>
         m_u = uTarget
         m_tPosUpdate = CreateTimer()
         m_tDestroy = CreateTimer()
@@ -18,7 +17,6 @@ class Data
         m_tx = createTTEx(m_u.getPos3Zero(), m_fShieldHP.toString(), 9)
     
     ondestroy
-        mapInstance.remove(m_u)
         m_u.removeAbility(IceBarrier.buff_id)
         m_tPosUpdate.pause()
         m_tPosUpdate.destr()
@@ -27,9 +25,7 @@ class Data
         m_tx.destr()
         m_trDmg.disable()
         m_trDmg.destr()
-        
     
-    HashMap<unit, IceBarrier> mapInstance
     unit m_u
     timer m_tPosUpdate
     timer m_tDestroy
@@ -45,123 +41,76 @@ public class IceBarrier extends IceMageSkill
     static constant real shield_hp = 750.0
     static constant int buff_id = 'B001'
     static constant real last_time = 45
-    private int key = 0
-    private HashMap<int, Data> data_manager
-    static private var unit_manager = new HashMap<unit, IceBarrier>
-    
+    static private var data_manager = new HashMap<unit, Data>
+    construct(unit u)
+        super(u)
+        
     override function get_self_id() returns int
         return IceBarrier.self_id
     
     override function listen()
-        CreateTrigger()..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+        tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
             ..addCondition(Filter(()->GetSpellAbilityId()==IceBarrier.self_id))
             ..addAction(function skill_act_forwarding)
         
     override function cast()
         unit u = GetSpellTargetUnit()
-
-        if _DEBUG
-            print("IceBarrier::SpellUnitHandle:"+u.getHandleId().toString())
         if u.hasAbility(buff_id)
-            if _DEBUG
-                print("IceBarrier::icebarrier cover")
-            refresh()
+            refresh(u)
         else
-            if _DEBUG
-                print("IceBarrier::icebarrier act")
-            
-            key = KeyCreater.get()
-            data_manager.put(key, new Data(u))
-            IceBarrier.unit_manager.put(u, this)
-            start()
+            start(u)
 
-
-
-    construct()
-        data_manager = new HashMap<int, Data>
-
-    ondestroy
-        
-
-    function start()
-        if not data_manager.has(key)
-            if _DEBUG
-                print("IceBarrier::DATA NOT FOUND")
-            return
-        
-        Data dt = data_manager.get(key)
-
+    function start(unit u)
+        Data dt = new Data(u)
+        data_manager.put(u, dt)
         if dt.m_u.hasAbility(IceBarrier.buff_id)
             if _DEBUG
                 print("IceBarrier::COVER CHECK ERROR")
             return
-
-        if _DEBUG
-            print("icebarrier int:"+(this castTo int).toString())
-            print("icebarrier dat int:"+(dt castTo int).toString())
-            print("icebarrier unit instance:"+((dt castTo int) castTo Data).m_u.getHandleId().toString())
-            print("icebarrier destroy timer handle:"+dt.m_tDestroy.getHandleId().toString())
-            print("icebarrier trigger handle"+dt.m_trDmg.getHandleId().toString())
         
-        dt.m_tPosUpdate.setData(dt castTo int)
-        dt.m_tDestroy.setData(dt castTo int)
+        dt.m_tPosUpdate..setData(dt castTo int)
+            ..startPeriodic(0.03, function IceBarrier.pos_update)
+
+        dt.m_tDestroy..setData(dt castTo int)
+            ..startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
 
         dt.m_trDmg..registerUnitEvent(dt.m_u, EVENT_UNIT_DAMAGED)
             ..addAction(function IceBarrier.protect_act)
+            ..setData(dt castTo int)
             ..enable()
+        
         dt.m_trDeath..registerUnitEvent(dt.m_u, EVENT_UNIT_DEATH)
             ..addAction(function IceBarrier.unit_death)
+            ..setData(dt castTo int)
             ..enable()
 
-        dt.m_tPosUpdate.startPeriodic(0.03, function IceBarrier.pos_update)
-        dt.m_tDestroy.startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
-
-
-    function refresh()
-        if not data_manager.has(key)
+    function refresh(unit u)
+        if not data_manager.has(u)
             if _DEBUG
                 print("IceBarrier::DATA NOT FOUND")
             return
         
-        Data dt = data_manager.get(key)
-
+        Data dt = data_manager.get(u)
+        
         if dt.m_tDestroy != null
             dt.m_tDestroy.pause()
-            dt.m_tDestroy.destr()
-            dt.m_tDestroy = CreateTimer()
             dt.m_fShieldHP = IceBarrier.shield_hp
             dt.m_tx.setText(dt.m_fShieldHP.toString(), 9)
-            dt.m_tDestroy.setData(dt castTo int)
             dt.m_tDestroy.startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
         
     static function unit_death()
-        IceBarrier instance
+        Data dt = GetTriggeringTrigger().getData() castTo Data
         
-        if IceBarrier.unit_manager.has(GetTriggerUnit())
-            instance = IceBarrier.unit_manager.get(GetTriggerUnit())
-        else
-            if _DEBUG
-                print("IceBarrier::unit not found")
-            return
-
-        Data dt = instance.data_manager.get(instance.key)
-        dt.m_tDestroy.startPeriodic(0.0, function IceBarrier.destr)
-        if _DEBUG
-            print("IceBarrier::Shield Break <- Unit Die")
+        data_manager.remove(dt.m_u)
+        destroy dt
 
     static function protect_act()
-        IceBarrier instance
-        if IceBarrier.unit_manager.has(GetTriggerUnit())
-            instance = IceBarrier.unit_manager.get(GetTriggerUnit())
-        else
-            if _DEBUG
-                print("IceBarrier::unit not found")
-            return
-            
-        Data dt = instance.data_manager.get(instance.key)
+        Data dt = GetTriggeringTrigger().getData() castTo Data
         real fDmg = GetEventDamage()
+        
         if fDmg <= 0
             return
+        
         real fCurHp = dt.m_u.getHP()
         real fMaxHp = dt.m_u.getMaxHP()
         if fMaxHp <= fDmg
@@ -172,20 +121,19 @@ public class IceBarrier extends IceMageSkill
         dt.m_fRecovery = fDmg > dt.m_fShieldHP ? dt.m_fShieldHP : fDmg
         dt.m_fShieldHP -= fDmg
         dt.m_fRecovery -= fDeltaHp
+
         if dt.m_fShieldHP < 0
-            dt.m_fShieldHP = 0.0
             dt.m_tDestroy.startPeriodic(0.0, function IceBarrier.destr)
-            if _DEBUG
-                print("Shield Break")
         else
             dt.m_tx.setText(dt.m_fShieldHP.toString(), 9)
-            
+
         CreateTimer()..setData(dt castTo int)
             ..startPeriodic(0, function IceBarrier.delay_recover)
 
     static function delay_recover()
         timer t = GetExpiredTimer()
         Data dt = (t.getData()) castTo Data
+
         dt.m_u.setHP(dt.m_u.getHP() + dt.m_fRecovery)
         t.pause()
         t.destr()
@@ -193,19 +141,9 @@ public class IceBarrier extends IceMageSkill
     static function pos_update()
         Data dt = (GetExpiredTimer().getData()) castTo Data
         dt.m_tx.setPos(dt.m_u.getPos3Zero())
-
-
-    static function delay_destr()
-        CreateTimer()..setData(GetExpiredTimer().getData())
-            ..startPeriodic(0, function IceBarrier.destr)
-        
+    
     static function destr()
-        if _DEBUG
-            print("icebarrier destroying")
         Data dt = GetExpiredTimer().getData() castTo Data
-        var instance = IceBarrier.unit_manager.get(dt.m_u)
+        data_manager.remove(dt.m_u)
         destroy dt
-        if not KeyCreater.remove(instance.key)
-            if _DEBUG
-                print("IceBarrier::Key Error")
 

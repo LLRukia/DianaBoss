@@ -1,0 +1,32 @@
+package PlayerUnitHelper
+import PlayerUnit
+import Table
+
+//forward skill act
+public function skill_act_forwarding()
+    PlayerUnitHelper.get_instance(GetSpellAbilityUnit()) castTo PlayerUnit
+        .spell(GetSpellAbilityId())
+
+public class PlayerUnitHelper
+    static Table mapUnitInstance = new Table
+
+    static function get_instance(unit u) returns int
+        if mapUnitInstance.hasInt(u.getHandleId())
+            return mapUnitInstance.loadInt(u.getHandleId())
+        else
+            return -1
+
+    static function register(unit u, IPlayerUnit obj) returns boolean
+        if mapUnitInstance.hasInt(u.getHandleId())
+            return false
+        mapUnitInstance.saveInt(u.getHandleId(), obj castTo int)
+        return true
+
+    static function unregister(unit u) returns boolean
+        if not mapUnitInstance.hasInt(u.getHandleId())
+            return false
+        destroy mapUnitInstance.loadInt(u.getHandleId()) castTo IPlayerUnit
+        mapUnitInstance.removeInt(u.getHandleId())
+        return true
+
+    private construct()

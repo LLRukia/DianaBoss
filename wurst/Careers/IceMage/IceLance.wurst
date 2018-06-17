@@ -1,7 +1,110 @@
 package IceLance
 import IceMage
+import TimerUtils
+import MathHelper
+import TriggerHelper
+import HashMap
+import ExternalDefines
 
 public class IceLance extends IceMageSkill
-	construct()
+	static constant int self_id = 'A007'
+	static constant int help_id = 'A006'
+	static constant real last_time = 10.
+	static constant int unit_id = 'h003'
+	static constant real unit_offset = 95.
+	static constant int unit_count = 6
+	static constant real dmg_radius = 55.
+	static constant real dmg = 300.
+	
+	private boolean from_unit
+	private vec2 pt1
+	private vec2 pt2
+	private trigger tr_help = null
+	construct(unit u)
+		super(u)
+		tr_help = CreateTrigger()
+		init_self()
+
+	ondestroy
+		tr_help..disable()..destr()
+
 	override function listen()
+		tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+			..addCondition(Filter(()->GetSpellAbilityId()==IceLance.self_id))
+			..addAction(function skill_act_forwarding)
+		tr_help..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+			..addCondition(Filter(()->GetSpellAbilityId()==IceLance.help_id))
+			..setData(this castTo int)
+			..addAction(function IceLance.choose_point2)
+		
 	override function cast()
+		print(GetSpellAbilityId().toString())
+		choose_point1()
+
+	override function get_self_id() returns int
+		return IceLance.self_id
+
+	private function choose_point1()
+		location lc = GetSpellTargetLoc()
+		pt1 = vec2(GetLocationX(lc), GetLocationY(lc))
+		RemoveLocation(lc)
+		GetOwningPlayer(m_self_unit).setAbilityAvailable(IceLance.self_id, false)
+		m_self_unit.addAbility(IceLance.help_id)
+		CreateTimer()..setData(this castTo int)
+			..startPeriodic(1, function IceLance.start)
+
+	static private function choose_point2()
+		location lc = GetSpellTargetLoc()
+		var instance = GetTriggeringTrigger().getData() castTo IceLance
+		instance.from_unit = false
+		instance.pt2 = vec2(GetLocationX(lc), GetLocationY(lc))
+		RemoveLocation(lc)
+
+	static function start()
+		timer t = GetExpiredTimer()
+		IceLance instance = t.getData() castTo IceLance
+
+		GetOwningPlayer(instance.m_self_unit).setAbilityAvailable(IceLance.self_id, true)
+		instance.m_self_unit.removeAbility(IceLance.help_id)
+
+		vec2 pt1
+		vec2 pt2
+		if instance.from_unit
+			pt1 = instance.m_self_unit.getPos()
+			pt2 = instance.pt1
+		else
+			pt1 = instance.pt1
+			pt2 = instance.pt2
+		if _DEBUG
+			print(pt1.toString() + "|n" + pt2.toString())
+		vec2 cur_loc = pt1
+		if instance.from_unit
+			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_direction(pt1, pt2), IceLance.unit_offset)
+
+		var dmg_once = new HashMap<unit, boolean>
+		for i = 0 to unit_count - 1
+			createUnit(GetOwningPlayer(instance.m_self_unit),
+				IceLance.unit_id, cur_loc, bj_UNIT_FACING.fromRad())
+				..setTimedLife(IceLance.last_time)
+				..setPathing(false)
+				..setPos(cur_loc)
+			group g = CreateGroup()
+			g.enumUnitsInRange(cur_loc, IceLance.dmg_radius)
+			for uTarget in g
+				if not dmg_once.has(uTarget) and not IsUnitAlly(uTarget, GetOwningPlayer(instance.m_self_unit))
+					instance.m_self_unit.damageTarget(uTarget, IceLance.dmg)
+					dmg_once.put(uTarget, true)
+			g.destr()
+			flashEffect("Abilities\\Spells\\Undead\\FrostNova\\FrostNovaTarget.mdl", cur_loc)
+			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_direction(pt1, pt2), IceLance.unit_offset)
+
+
+		instance.init_self()
+		destroy dmg_once
+		t.pause()
+		t.destr()
+
+	private function init_self()
+		from_unit = true
+		pt1 = vec2(0,0)
+		pt2 = vec2(0,0)

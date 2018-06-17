@@ -1,0 +1,16 @@
+package ConeofCold
+
+import IceMage
+
+public class ConeofCold extends IceMageSkill
+	construct(unit u)
+		super(u)
+	
+	static constant int self_id = 'A005'
+	static constant real shield_hp = 750.0
+	static constant int buff_id = 'B001'
+	static constant real last_time = 45
+	override function listen()
+	override function cast()
+	override function get_self_id() returns int
+		return ConeofCold.self_id

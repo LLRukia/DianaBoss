@@ -1,8 +1,13 @@
 package PlayerHelper
+import Table
+import ExternalDefines
+import initlater IceMage
+import initlater FireMage
 
-import public IceMage
-import public FireMage
+public function player.get_unit() returns unit
+    return PlayerHelper.get_player_unit(this)
 
+//* the only way to init!
 public function player.init_self(unit u, career emCareer)
     PlayerUnit obj
     switch emCareer
@@ -14,4 +19,41 @@ public function player.init_self(unit u, career emCareer)
             obj = null
 
     if obj != null
-        IPlayerUnit.register(u, obj)
+        if not PlayerUnitHelper.register(u, obj)
+            if _DEBUG
+                print("register unit&player bind failed")
+
+public function player.destr_self()
+    unit u = this.get_unit()
+    if u == null
+        if _DEBUG
+            print("player has not init yet")
+        return
+    if not PlayerUnitHelper.unregister(u)
+        if _DEBUG
+            print("bad unit&player bind")
+            
+    RemoveUnit(u)
+    
+public class PlayerHelper
+    static Table mapPlayerUnit = new Table
+    static function get_player_unit(player pl) returns unit
+        if mapPlayerUnit.hasHandle(pl.getId())
+            return mapPlayerUnit.loadUnit(pl.getId())
+        else
+            return null
+    
+    static function register_controlling_unit(player pl, unit u) returns boolean
+        if mapPlayerUnit.hasHandle(pl.getId())
+            return false
+        
+        mapPlayerUnit.saveUnit(pl.getId(), u)
+        return true
+
+    static function unregister_controlling_unit(player pl, unit u) returns boolean
+        if not mapPlayerUnit.hasHandle(pl.getId()) and mapPlayerUnit.loadUnit(pl.getId()) != u
+            return false
+        
+        mapPlayerUnit.removeHandle(pl.getId())
+        return true
+    private construct()

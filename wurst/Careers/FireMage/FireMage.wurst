@@ -4,3 +4,4 @@ import public PlayerUnit
 public class FireMage extends PlayerUnit
 	construct(player pl, unit u)
 		super(pl, u)
+		m_self_career = fire_mage

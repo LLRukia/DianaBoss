@@ -1,62 +1,71 @@
 package IceMage
+import public PlayerUnitHelper
 import public PlayerUnit
 import ExternalDefines
 import HashMap
 import initlater IceBarrier
 import initlater IceLance
-import IUnitSkill
+import initlater ForstBolt
+import initlater ConeofCold
+import public Skills
 
 enum Skill
-	FrostBolt
+	Frost_Bolt
 	Cone_of_Cold
 	Ice_Lance
 	Ice_Barrier
+	Max
 
 public class IceMage extends PlayerUnit
-	private HashMap<int, Skill> mapSkill
-	static private boolean bInitStatic = false
-
-	HashMap<Skill, IceMageSkill> m_mapSkill
-
 	construct(player pl, unit u)
 		super(pl, u)
-		if _DEBUG
-			print("construct IceMage")
-
+		m_self_career = ice_mage
 		init_self()
+
+	override function spell(int skill_id)
+		m_mapSkill.get(mapSkill.get(skill_id)).cast()
 	
-	override function listen_all()
-		for i = 0 to 3
+	private var mapSkill = new HashMap<int, Skill>
+	private var m_mapSkill = new HashMap<Skill, IceMageSkill>
+
+	ondestroy
+		print("IceMage::destroy")
+		for i = 0 to (Skill.Max castTo int) - 1
+			Skill sk = i castTo Skill
+			if m_mapSkill.has(sk)
+				destroy m_mapSkill.get(sk)
+		destroy m_mapSkill
+		destroy mapSkill
+
+	override private function listen_all()
+		for i = 0 to (Skill.Max castTo int) - 1
 			if m_mapSkill.has(i castTo Skill)
 				m_mapSkill.get(i castTo Skill).listen()
 			else
 				if _DEBUG
 					print("INIT NOT FINISHED YET")
 
-	function init_self()
-		m_mapSkill = new HashMap<Skill, IceMageSkill>
-		m_mapSkill.put(Skill.Ice_Barrier, new IceBarrier())
-		m_mapSkill.put(Skill.Ice_Lance, new IceLance())
+	private function init_self() 
+		m_mapSkill.put(Skill.Ice_Barrier, new IceBarrier(m_self_unit))
+		m_mapSkill.put(Skill.Ice_Lance, new IceLance(m_self_unit))
+		m_mapSkill.put(Skill.Cone_of_Cold, new ConeofCold(m_self_unit))
+		m_mapSkill.put(Skill.Frost_Bolt, new ForstBolt(m_self_unit))
 
 		mapSkill = new HashMap<int, Skill>
-		mapSkill.put(IceBarrier.self_id, Skill.Ice_Barrier)
+		for i = 0 to (Skill.Max castTo int) - 1
+			Skill sk = i castTo Skill
+			if m_mapSkill.has(sk)
+				mapSkill.put(m_mapSkill.get(sk).get_self_id(), sk)
 		listen_all()
-		
-	override function spell(int nSkillId)
-		Skill skill
-		if _DEBUG
-			print("IceMage::Spell Forwarding"+nSkillId.toString())
-		if (IceMage.mapSkill.has(nSkillId))
-			skill = IceMage.mapSkill.get(nSkillId)
-		else
-			if _DEBUG
-				print("IceMage::Skill Not Found")
-			return
-		
-		this.m_mapSkill.get(skill).cast()
 
-public class IceMageSkill extends UnitSkill
+
+public class IceMageSkill extends ISkill
+	construct(unit spell_unit)
+		super(spell_unit)
+
 	override function cast()
+		if _DEBUG
+			print("IceMageSkill::error call")
 		
 	override function listen()
 

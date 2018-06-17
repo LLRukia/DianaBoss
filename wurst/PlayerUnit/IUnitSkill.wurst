@@ -1,6 +1,0 @@
-package IUnitSkill
-
-public abstract class UnitSkill
-    abstract function get_self_id() returns int
-    abstract function listen()
-    abstract function cast()
