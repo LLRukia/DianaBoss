@@ -1,5 +1,5 @@
 package IceLance
-import initlater IceMage
+import IceMage
 
 public class IceLance extends IceMageSkill
 	construct()

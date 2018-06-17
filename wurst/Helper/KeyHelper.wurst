@@ -16,11 +16,15 @@ public class KeyCreater
         else
             ret = n
             n++
+        if _DEBUG
+            print("KeyCreater::Create Key:"+ret.toString())
         return ret
     
     static function remove(int key) returns boolean
         if setRecyle.count(key) == 0
             setRecyle.add(key)
+            if _DEBUG
+                print("KeyCreater::Remove Key:"+key.toString())
             return true
         if _DEBUG
             print("KeyCreater::remove null")

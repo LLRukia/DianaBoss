@@ -2,8 +2,9 @@ package IceMage
 import public PlayerUnit
 import ExternalDefines
 import HashMap
-import IceBarrier
-import IceLance
+import initlater IceBarrier
+import initlater IceLance
+import IUnitSkill
 
 enum Skill
 	FrostBolt
@@ -12,14 +13,19 @@ enum Skill
 	Ice_Barrier
 
 public class IceMage extends PlayerUnit
-	static HashMap<int, Skill> mapSkill
+	private HashMap<int, Skill> mapSkill
+	static private boolean bInitStatic = false
+
 	HashMap<Skill, IceMageSkill> m_mapSkill
 
 	construct(player pl, unit u)
 		super(pl, u)
-		init_map()
+		if _DEBUG
+			print("construct IceMage")
+
+		init_self()
 	
-	function listen_all()
+	override function listen_all()
 		for i = 0 to 3
 			if m_mapSkill.has(i castTo Skill)
 				m_mapSkill.get(i castTo Skill).listen()
@@ -27,27 +33,32 @@ public class IceMage extends PlayerUnit
 				if _DEBUG
 					print("INIT NOT FINISHED YET")
 
-	function init_map()
-		m_mapSkill.flush()
+	function init_self()
+		m_mapSkill = new HashMap<Skill, IceMageSkill>
 		m_mapSkill.put(Skill.Ice_Barrier, new IceBarrier())
 		m_mapSkill.put(Skill.Ice_Lance, new IceLance())
+
+		mapSkill = new HashMap<int, Skill>
+		mapSkill.put(IceBarrier.self_id, Skill.Ice_Barrier)
 		listen_all()
 		
 	override function spell(int nSkillId)
 		Skill skill
+		if _DEBUG
+			print("IceMage::Spell Forwarding"+nSkillId.toString())
 		if (IceMage.mapSkill.has(nSkillId))
 			skill = IceMage.mapSkill.get(nSkillId)
 		else
 			if _DEBUG
-				print("IceMage Skill Not Found")
+				print("IceMage::Skill Not Found")
 			return
 		
 		this.m_mapSkill.get(skill).cast()
 
+public class IceMageSkill extends UnitSkill
+	override function cast()
+		
+	override function listen()
 
-public class IceMageSkill
-	function cast()
-	
-	function listen()
-
-
+	override function get_self_id() returns int
+		return 0

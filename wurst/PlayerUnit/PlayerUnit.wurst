@@ -20,9 +20,16 @@ function player.register(unit u) returns boolean
     
 
 public class PlayerUnit extends IPlayerUnit
-
-    override function spell(int nSkillId)
+    static private function init_static()
         skip
+    
+    override function listen_all()
+        if _DEBUG
+            print("PlayerUnit::listen_all::error call")
+    
+    override function spell(int nSkillId)
+        if _DEBUG
+            print("PlayerUnit::spell::error call")
 
     construct(player pl, unit u)
         //whenver create a playerunit, register it!
@@ -30,3 +37,5 @@ public class PlayerUnit extends IPlayerUnit
         if not pl.register(u)
             if _DEBUG
                 print("repeat choose")
+
+        PlayerUnit.init_static()

@@ -3,8 +3,6 @@ import NoWurst
 
 public constant boolean _DEBUG = true
 
-
 public constant int ICEMAGE_ID = 'H000'
-
 
 public constant location LOCATION_BORN = GetRectCenter(Rect(- 704.0, - 1248.0, 288.0, - 768.0))

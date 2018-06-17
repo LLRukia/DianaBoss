@@ -1,0 +1,8 @@
+package WinMain
+
+import PlayerHelper
+import ExternalDefines
+
+
+init
+    Player(0).init_self(CreateUnitAtLoc(Player(0), ICEMAGE_ID, LOCATION_BORN, bj_UNIT_FACING), career.ice_mage)

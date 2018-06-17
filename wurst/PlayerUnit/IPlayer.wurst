@@ -20,6 +20,9 @@ public abstract class IPlayer
 
 
 public abstract class IPlayerUnit extends IPlayer
+    static private function init_static()
+        
+    
     static Table mapUnitInstance = new Table
 
     static function instance(unit u) returns int
@@ -33,6 +36,7 @@ public abstract class IPlayerUnit extends IPlayer
     
     abstract function spell(int nSkillId)
 
+    abstract function listen_all()
     
         
         

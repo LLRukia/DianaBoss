@@ -1,5 +1,5 @@
 package IceBarrier
-import initlater IceMage
+import IceMage
 import TimerUtils
 import ExternalDefines
 import HashMap
@@ -7,6 +7,7 @@ import KeyHelper
 
 class Data
     construct (unit uTarget)
+        mapInstance = new HashMap<unit, IceBarrier>
         m_u = uTarget
         m_tPosUpdate = CreateTimer()
         m_tDestroy = CreateTimer()
@@ -28,7 +29,7 @@ class Data
         m_trDmg.destr()
         
     
-    var mapInstance = new HashMap<unit, IceBarrier>
+    HashMap<unit, IceBarrier> mapInstance
     unit m_u
     timer m_tPosUpdate
     timer m_tDestroy
@@ -46,8 +47,11 @@ public class IceBarrier extends IceMageSkill
     static constant real last_time = 45
     private int key = 0
     private HashMap<int, Data> data_manager
-    static private HashMap<unit, IceBarrier> unit_manager
-
+    static private var unit_manager = new HashMap<unit, IceBarrier>
+    
+    override function get_self_id() returns int
+        return IceBarrier.self_id
+    
     override function listen()
         CreateTrigger()..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
             ..addCondition(Filter(()->GetSpellAbilityId()==IceBarrier.self_id))
@@ -74,7 +78,7 @@ public class IceBarrier extends IceMageSkill
 
 
     construct()
-        
+        data_manager = new HashMap<int, Data>
 
     ondestroy
         
