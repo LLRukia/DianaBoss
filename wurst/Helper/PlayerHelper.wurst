@@ -1,0 +1,17 @@
+package PlayerHelper
+
+import public IceMage
+import public FireMage
+
+public function player.init_self(unit u, career emCareer)
+    PlayerUnit obj
+    switch emCareer
+        case ice_mage
+            obj = new IceMage(this, u)
+        case fire_mage
+            obj = new FireMage(this, u)
+        default
+            obj = null
+
+    if obj != null
+        IPlayerUnit.register(u, obj)

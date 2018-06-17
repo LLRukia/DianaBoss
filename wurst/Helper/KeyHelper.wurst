@@ -1,0 +1,28 @@
+package KeyHelper
+import HashSet
+import ExternalDefines
+
+//easy version
+public class KeyCreater
+    private static int n = 0
+    private static HashSet<int> setRecyle = new HashSet<int>
+    static function get() returns int
+        int ret = 0
+        if not setRecyle.isEmpty()
+            for i in setRecyle
+                ret = i
+                setRecyle.remove(i)
+                break
+        else
+            ret = n
+            n++
+        return ret
+    
+    static function remove(int key) returns boolean
+        if setRecyle.count(key) == 0
+            setRecyle.add(key)
+            return true
+        if _DEBUG
+            print("KeyCreater::remove null")
+        return false
+        

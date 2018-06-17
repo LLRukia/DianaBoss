@@ -1,0 +1,53 @@
+package IceMage
+import public PlayerUnit
+import ExternalDefines
+import HashMap
+import IceBarrier
+import IceLance
+
+enum Skill
+	FrostBolt
+	Cone_of_Cold
+	Ice_Lance
+	Ice_Barrier
+
+public class IceMage extends PlayerUnit
+	static HashMap<int, Skill> mapSkill
+	HashMap<Skill, IceMageSkill> m_mapSkill
+
+	construct(player pl, unit u)
+		super(pl, u)
+		init_map()
+	
+	function listen_all()
+		for i = 0 to 3
+			if m_mapSkill.has(i castTo Skill)
+				m_mapSkill.get(i castTo Skill).listen()
+			else
+				if _DEBUG
+					print("INIT NOT FINISHED YET")
+
+	function init_map()
+		m_mapSkill.flush()
+		m_mapSkill.put(Skill.Ice_Barrier, new IceBarrier())
+		m_mapSkill.put(Skill.Ice_Lance, new IceLance())
+		listen_all()
+		
+	override function spell(int nSkillId)
+		Skill skill
+		if (IceMage.mapSkill.has(nSkillId))
+			skill = IceMage.mapSkill.get(nSkillId)
+		else
+			if _DEBUG
+				print("IceMage Skill Not Found")
+			return
+		
+		this.m_mapSkill.get(skill).cast()
+
+
+public class IceMageSkill
+	function cast()
+	
+	function listen()
+
+

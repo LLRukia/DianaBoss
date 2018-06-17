@@ -1,0 +1,6 @@
+package FireMage
+import public PlayerUnit
+
+public class FireMage extends PlayerUnit
+	construct(player pl, unit u)
+		super(pl, u)

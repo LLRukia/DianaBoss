@@ -1,0 +1,32 @@
+package PlayerUnit
+import ExternalDefines
+import public IPlayer
+
+public function skill_act_forwarding()
+    int nSkillId = GetSpellAbilityId()
+    unit uCaster = GetSpellAbilityUnit()
+    PlayerUnit pu = IPlayerUnit.instance(uCaster) castTo PlayerUnit
+    pu.spell(nSkillId)
+
+
+public enum career
+    ice_mage
+    fire_mage
+
+function player.register(unit u) returns boolean
+    if IPlayer.register_controlling_unit(this, u)
+        return true
+    return false
+    
+
+public class PlayerUnit extends IPlayerUnit
+
+    override function spell(int nSkillId)
+        skip
+
+    construct(player pl, unit u)
+        //whenver create a playerunit, register it!
+        //actually, in this map, each player only has one unit
+        if not pl.register(u)
+            if _DEBUG
+                print("repeat choose")

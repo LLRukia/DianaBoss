@@ -1,0 +1,7 @@
+package IceLance
+import initlater IceMage
+
+public class IceLance extends IceMageSkill
+	construct()
+	override function listen()
+	override function cast()
