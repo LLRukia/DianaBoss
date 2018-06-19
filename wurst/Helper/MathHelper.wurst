@@ -1,6 +1,8 @@
 package MathHelper
 import NoWurst
+import Wurstunit
 import Vectors
+import Maths
 
 public class MathHelper
     static function forward(vec2 pt1, vec2 pt2, real offset) returns vec2
@@ -16,4 +18,35 @@ public class MathHelper
     static function get_direction(vec2 pt1, vec2 pt2) returns angle
         return Atan2BJ(pt2.y - pt1.y, pt2.x - pt1.x).fromDeg()
 
+    /** trans absolute coordinate to polar coordinate 
+        return vec2.x == radius, vec2.y == angle
+        @ attention angle is expressed as degree
+    */
+    static function coor_abso2polar(vec2 pt) returns vec2
+        return vec2(hypot(pt.x, pt.y), Atan2BJ(pt.y, pt.x))
+
+    /** trans polar coordinate to absolute coordinate */
+    static function coor_polar2abso(real r, angle ang) returns vec2
+        return vec2(r*ang.cos(), r*ang.sin())
+
+    /** trans polar coordinate to absolute coordinate
+        @ attention angle is expressed as degree
+    */
+    static function coor_polar2abso(real r, real ang) returns vec2
+        return vec2(r*CosBJ(ang), r*SinBJ(ang))
+    
+    /** rotate a point anticlockwise(CCW) */
+    static function rotate_point(vec2 pt, real ang) returns vec2
+        var polar = MathHelper.coor_abso2polar(pt)
+        return MathHelper.coor_polar2abso(polar.x, polar.y + ang)
+
+
     private construct()
+
+
+@test
+function vectorTests()
+    let v1 = vec2(1,0)
+    let r = 90.
+    (MathHelper.rotate_point(v1, r) == vec2(0,1)).assertTrue()
+    
