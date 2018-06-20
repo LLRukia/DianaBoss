@@ -3,14 +3,14 @@ import NoWurst
 
 public abstract class ISkill
     protected unit m_self_unit = null
-    protected trigger tr_self = null
+    protected trigger m_tr_self = null
     construct(unit u)
         m_self_unit = u
-        tr_self = CreateTrigger()
+        m_tr_self = CreateTrigger()
 
     ondestroy
-        DisableTrigger(tr_self)
-        DestroyTrigger(tr_self)
+        DisableTrigger(m_tr_self)
+        DestroyTrigger(m_tr_self)
 
     abstract function cast()
         

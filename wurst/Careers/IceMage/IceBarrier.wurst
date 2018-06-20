@@ -49,7 +49,7 @@ public class IceBarrier extends IceMageSkill
         return IceBarrier.self_id
     
     override function listen()
-        tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+        m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
             ..addCondition(Filter(()->GetSpellAbilityId()==IceBarrier.self_id))
             ..addAction(function skill_act_forwarding)
         

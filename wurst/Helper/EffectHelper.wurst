@@ -1,0 +1,16 @@
+package EffectHelper
+
+import EditorHelper
+import HashMap
+
+class EffectHelper
+    private static var effect_id_map = new HashMap<string, int>
+    static var effect_unit_map = new HashMap<string, unit>
+    @compiletime
+    static function init_effect()
+        if compiletime
+            effect_id_map.put("0.9BlinkCaster", EditorHelper.create_effect_faker(0.9, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl"))
+        else
+            effect_unit_map.put("0.9BlinkCaster", createUnit(Player(0), effect_id_map.get("0.9BlinkCaster"), vec2(0, 0), angle(0)))
+
+            

@@ -1,0 +1,67 @@
+package SkillHelper
+
+import NoWurst
+import Unit
+import MathHelper
+import TimerUtils
+import Effect
+
+class Rush
+    construct(unit u, angle ang, real speed, real dis, bool pause, string effect_path)
+        this.u = u
+        this.ang = ang
+        this.speed = speed
+        this.dis = dis
+        this.pause = pause
+        this.effect_path = effect_path
+        moved_dis = 0
+        rush()
+
+    private function rush()
+        if dis<speed or u == null
+            return
+        if pause
+            u.pause()
+        CreateTimer()..setData(this castTo int)
+            ..startPeriodic(0.03, function Rush.rush_timer)
+    
+    private static function rush_timer()
+        timer t = GetExpiredTimer()
+        var data = t.getData() castTo Rush
+        vec2 pos = data.u.getPos()
+        pos = MathHelper.forward(pos, data.ang, data.speed)
+        unit uExplorer = createUnit(data.u.getOwner(), 'h006', pos, data.ang)
+
+        if not IssueBuildOrderById(uExplorer, 'h006', pos.x, pos.y) or data.moved_dis >= data.dis
+            if data.pause
+                data.u.unpause()
+            destroy data
+            t..pause()..destr()
+            return
+            
+        data.u.setPos(pos)
+        flashEffect(data.effect_path, pos)
+        data.moved_dis += data.speed
+
+    unit u
+    angle ang
+    real speed
+    real dis
+    bool pause
+    real moved_dis
+    string effect_path
+
+class FanShaped
+    
+
+public class SkillHelper
+    static function rush(unit u, angle ang, real dis, real speed, bool pauseUnit, string effect_path)
+        new Rush(u, ang, dis, speed, pauseUnit, effect_path)
+
+    static function flash()
+        
+
+
+    private construct()
+
+    

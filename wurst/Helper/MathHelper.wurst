@@ -15,7 +15,7 @@ public class MathHelper
     static function forward(vec2 pt, angle ang, real offset) returns vec2
         return vec2(pt.x + offset*(ang.cos()), pt.y + offset*(ang.sin()))
 
-    static function get_direction(vec2 pt1, vec2 pt2) returns angle
+    static function get_angle(vec2 pt1, vec2 pt2) returns angle
         return Atan2BJ(pt2.y - pt1.y, pt2.x - pt1.x).fromDeg()
 
     /** trans absolute coordinate to polar coordinate 

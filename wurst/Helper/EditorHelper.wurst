@@ -1,0 +1,25 @@
+package EditorHelper
+
+import NoWurst
+import AbilityObjEditing
+
+class EditorHelper
+    static private int u_id = 'u999'
+    static private int s_id = 's999'
+
+    static function create_effect_faker(real size, string effect_path) returns int
+        var s_editor = new AbilityDefinition(s_id, 'A000')
+        s_editor..setArtEffect(effect_path)
+        var u_editor = new UnitOrBuildingOrHeroDefinition(u_id, 'h005')
+        u_editor..setScalingValue(size)
+            ..setScaleProjectiles(true)
+            ..setTurnRate(3)
+            ..setManaMaximum(9999)
+            ..setManaRegeneration(9999.)
+            ..setManaInitialAmount(9999)
+            ..setNormalAbilities(I2S(s_id))
+        u_id--
+        s_id--
+        destroy u_editor
+        destroy s_editor
+        return u_id

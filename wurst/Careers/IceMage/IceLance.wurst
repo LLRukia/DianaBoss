@@ -29,7 +29,7 @@ public class IceLance extends IceMageSkill
 		tr_help..disable()..destr()
 
 	override function listen()
-		tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+		m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
 			..addCondition(Filter(()->GetSpellAbilityId()==IceLance.self_id))
 			..addAction(function skill_act_forwarding)
 		tr_help..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
@@ -79,7 +79,7 @@ public class IceLance extends IceMageSkill
 			print(pt1.toString() + "|n" + pt2.toString())
 		vec2 cur_loc = pt1
 		if instance.from_unit
-			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_direction(pt1, pt2), IceLance.unit_offset)
+			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_angle(pt1, pt2), IceLance.unit_offset)
 
 		var dmg_once = new HashMap<unit, boolean>
 		for i = 0 to unit_count - 1
@@ -96,7 +96,7 @@ public class IceLance extends IceMageSkill
 					dmg_once.put(uTarget, true)
 			g.destr()
 			flashEffect("Abilities\\Spells\\Undead\\FrostNova\\FrostNovaTarget.mdl", cur_loc)
-			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_direction(pt1, pt2), IceLance.unit_offset)
+			cur_loc = MathHelper.forward(cur_loc, MathHelper.get_angle(pt1, pt2), IceLance.unit_offset)
 
 
 		instance.init_self()
