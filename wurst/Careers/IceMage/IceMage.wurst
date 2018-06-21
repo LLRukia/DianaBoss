@@ -9,7 +9,7 @@ import initlater ForstBolt
 import initlater ConeofCold
 import public Skills
 
-enum Skill
+enum emSkill
 	Frost_Bolt
 	Cone_of_Cold
 	Ice_Lance
@@ -25,35 +25,35 @@ public class IceMage extends PlayerUnit
 	override function spell(int skill_id)
 		m_mapSkill.get(mapSkill.get(skill_id)).cast()
 	
-	private var mapSkill = new HashMap<int, Skill>
-	private var m_mapSkill = new HashMap<Skill, IceMageSkill>
+	private var mapSkill = new HashMap<int, emSkill>
+	private var m_mapSkill = new HashMap<emSkill, IceMageSkill>
 
 	ondestroy
 		print("IceMage::destroy")
-		for i = 0 to (Skill.Max castTo int) - 1
-			Skill sk = i castTo Skill
+		for i = 0 to (emSkill.Max castTo int) - 1
+			emSkill sk = i castTo emSkill
 			if m_mapSkill.has(sk)
 				destroy m_mapSkill.get(sk)
 		destroy m_mapSkill
 		destroy mapSkill
 
 	override private function listen_all()
-		for i = 0 to (Skill.Max castTo int) - 1
-			if m_mapSkill.has(i castTo Skill)
-				m_mapSkill.get(i castTo Skill).listen()
+		for i = 0 to (emSkill.Max castTo int) - 1
+			if m_mapSkill.has(i castTo emSkill)
+				m_mapSkill.get(i castTo emSkill).listen()
 			else
 				if _DEBUG
 					print("INIT NOT FINISHED YET")
 
 	private function init_self() 
-		m_mapSkill.put(Skill.Ice_Barrier, new IceBarrier(m_self_unit))
-		m_mapSkill.put(Skill.Ice_Lance, new IceLance(m_self_unit))
-		m_mapSkill.put(Skill.Cone_of_Cold, new ConeofCold(m_self_unit))
-		m_mapSkill.put(Skill.Frost_Bolt, new ForstBolt(m_self_unit))
+		m_mapSkill.put(emSkill.Ice_Barrier, new IceBarrier(m_self_unit))
+		m_mapSkill.put(emSkill.Ice_Lance, new IceLance(m_self_unit))
+		m_mapSkill.put(emSkill.Cone_of_Cold, new ConeofCold(m_self_unit))
+		m_mapSkill.put(emSkill.Frost_Bolt, new ForstBolt(m_self_unit))
 
-		mapSkill = new HashMap<int, Skill>
-		for i = 0 to (Skill.Max castTo int) - 1
-			Skill sk = i castTo Skill
+		mapSkill = new HashMap<int, emSkill>
+		for i = 0 to (emSkill.Max castTo int) - 1
+			emSkill sk = i castTo emSkill
 			if m_mapSkill.has(sk)
 				mapSkill.put(m_mapSkill.get(sk).get_self_id(), sk)
 		listen_all()
