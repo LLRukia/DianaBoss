@@ -1,0 +1,15 @@
+package BaseSkills
+
+
+public abstract class IBaseSkills
+    protected unit m_self_unit
+    protected trigger m_tr_self
+    construct(unit u)
+        this.m_self_unit = u
+        this.m_tr_self = CreateTrigger()
+    ondestroy
+        DisableTrigger(this.m_tr_self)
+        DestroyTrigger(this.m_tr_self)
+    abstract function cast()
+
+    abstract function listen()

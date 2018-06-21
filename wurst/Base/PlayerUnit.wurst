@@ -1,16 +1,24 @@
 package PlayerUnit
 import ExternalDefines
-import public IPlayerUnit
+import public initlater IPlayerUnit
 import PlayerHelper
+import HashMap
+import BaseSkills
 
 public class PlayerUnit extends IPlayerUnit
+    protected var m_mapSkill = new IterableMap<int, IBaseSkills>
+
     override function listen_all()
-        if _DEBUG
-            print("PlayerUnit::listen_all::error call")
-    
+        for s in m_mapSkill
+            m_mapSkill.get(s).listen()
+
+    override function init_all()
+
     override function spell(int nSkillId)
-        if _DEBUG
-            print("PlayerUnit::spell::error call")
+        m_mapSkill.get(nSkillId).cast()
+
+    override function init_self()
+        skip
 
     construct(player pl, unit u)
         m_self_unit = u
@@ -27,4 +35,5 @@ public class PlayerUnit extends IPlayerUnit
         if not PlayerHelper.unregister_controlling_unit(m_control_player, m_self_unit)
             if _DEBUG
              print("repeat choose")
-        
+        for s in m_mapSkill
+            destroy m_mapSkill.get(s)

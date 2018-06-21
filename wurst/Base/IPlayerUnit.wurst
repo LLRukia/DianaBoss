@@ -13,3 +13,9 @@ public abstract class IPlayerUnit
     abstract function spell(int nSkillId)
 
     abstract function listen_all()
+
+    abstract function init_all()
+
+    abstract function init_self()
+
+

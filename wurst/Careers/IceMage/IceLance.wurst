@@ -41,9 +41,6 @@ public class IceLance extends IceMageSkill
 		print(GetSpellAbilityId().toString())
 		choose_point1()
 
-	override function get_self_id() returns int
-		return IceLance.self_id
-
 	private function choose_point1()
 		location lc = GetSpellTargetLoc()
 		pt1 = vec2(GetLocationX(lc), GetLocationY(lc))
