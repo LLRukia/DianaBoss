@@ -8,7 +8,7 @@ import initlater PlayerUnit
 public function player.get_unit() returns unit
     return PlayerHelper.get_player_unit(this)
 
-//* the only way to init!
+/** the only way to init!*/
 public function player.init_self(unit u, career emCareer)
     PlayerUnit obj
     switch emCareer

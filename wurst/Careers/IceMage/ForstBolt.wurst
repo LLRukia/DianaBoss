@@ -19,8 +19,6 @@ public class ForstBolt extends IceMageSkill
 	override function cast()
 		m_self_unit.damageTarget(GetSpellTargetUnit(), ForstBolt.dmg, ATTACK_TYPE_NORMAL)
 
-	override function get_self_id() returns int
-		return ForstBolt.self_id
 
 @compiletime
 function create_frost_bolt()

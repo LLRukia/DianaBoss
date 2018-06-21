@@ -12,5 +12,3 @@ public class ConeofCold extends IceMageSkill
 	static constant real last_time = 45
 	override function listen()
 	override function cast()
-	override function get_self_id() returns int
-		return ConeofCold.self_id
