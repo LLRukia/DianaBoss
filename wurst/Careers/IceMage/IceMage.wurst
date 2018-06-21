@@ -1,20 +1,11 @@
 package IceMage
 import public PlayerUnitHelper
-import public PlayerUnit
+import PlayerUnit
 import ExternalDefines
 import HashMap
-import initlater IceBarrier
-import initlater IceLance
-import initlater ForstBolt
-import initlater ConeofCold
-import public Skills
-
-enum emSkill
-	Frost_Bolt
-	Cone_of_Cold
-	Ice_Lance
-	Ice_Barrier
-	Max
+import public IceMageSkill
+import UnitObjEditing
+import ObjectIds
 
 public class IceMage extends PlayerUnit
 	construct(player pl, unit u)
@@ -24,7 +15,7 @@ public class IceMage extends PlayerUnit
 
 	override function spell(int skill_id)
 		m_mapSkill.get(mapSkill.get(skill_id)).cast()
-	
+
 	private var mapSkill = new HashMap<int, emSkill>
 	private var m_mapSkill = new HashMap<emSkill, IceMageSkill>
 
@@ -58,16 +49,69 @@ public class IceMage extends PlayerUnit
 				mapSkill.put(m_mapSkill.get(sk).get_self_id(), sk)
 		listen_all()
 
-
-public class IceMageSkill extends ISkill
-	construct(unit spell_unit)
-		super(spell_unit)
-
-	override function cast()
-		if _DEBUG
-			print("IceMageSkill::error call")
+@compiletime
+function create_ice_mage()
+	var editor = new HeroDefinition(ICE_MAGE, 'Hjai')
+	string im_skill_list = ForstBolt.self_id.toRawCode() + "," + ConeofCold.self_id.toRawCode() + "," +
+		IceLance.self_id.toRawCode() + "," + IceBarrier.self_id.toRawCode() + "," + "AInv"
+	editor..setNormalAbilities(im_skill_list)
+		..setHeroAbilities("")
+		..setDefaultActiveAbility("")
+		..setCollisionSize(24.)
+		..setUnitSoundSet("Sorceress")
+		..setProperNames(Color_Define.COLOR_ICEMAGE + "冰法")
+		..setName("冰法")
+		..setScalingValue(0.9)
+		..setScaleProjectiles(true)
+		..setModelFile("units\\human\\Sorceress\\Sorceress_V1.mdl")
+		..setSelectionScale(0.8)
+		..setDeathTimeseconds(0.1)
+		..setArtSpecial("units\\human\\Sorceress\\Sorceress_V1.mdl")
+		..setSpeedBase(220)
+		..setTurnRate(3)
+		..setSpeedMinimum(90)
+		..setAcquisitionRange(1100)
+		..setAttack1ProjectileArt("Abilities\\Weapons\\ZigguratFrostMissile\\ZigguratFrostMissile.mdl")
+		..setAttack1AreaofEffectTargets(TYPE_ALLOWED_COMMON)
+		..setAttack1AnimationDamagePoint(0.2)
+		..setAttack1AnimationBackswingPoint(0.2)
+		..setAttack1AttackType(AttackType.Magic)
+		..setAttack1CooldownTime(2.2)
+		..setAttack1Range(1100)
+		..setAttack1ProjectileSpeed(1300)
+		..setAttack1RangeMotionBuffer(700.)
+		..setAttack1DamageBase(24)
+		..setAttack1DamageSidesperDie(1)
+		..setAttack1DamageNumberofDice(1)
+		..setAttacksEnabled(1)
+		..setLevel(1)
+		..setGoldCost(0)
+		..setLumberCost(0)
+		..setBuildTime(0)
+		..setRepairGoldCost(0)
+		..setRepairLumberCost(0)
+		..setRepairTime(0)
+		..setManaMaximum(200)
+		..setManaRegeneration(1)
+		..setHitPointsMaximumBase(3000)
+		..setHitPointsRegenerationRate(0)
+		..setSightRadiusDay(0)
+		..setSightRadiusNight(0)
+		..setStartingStrength(1)
+		..setStartingAgility(1)
+		..setStartingIntelligence(1)
+		..setStrengthPerLevel(0)
+		..setIntelligencePerLevel(0)
+		..setAgilityPerLevel(0)
+		..setHideMinimapDisplay(true)
+		..hideHeroDeathMsg(true)
+		..setCanFlee(false)
+		..setPrimaryAttribute("AGI")
+		..hideHeroInterfaceIcon(true)
+		..hideHeroMinimapDisplay(true)
 		
-	override function listen()
 
-	override function get_self_id() returns int
-		return 0
+
+init
+	if compiletime
+		create_ice_mage()

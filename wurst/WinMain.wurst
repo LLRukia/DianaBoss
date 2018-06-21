@@ -3,10 +3,8 @@ package WinMain
 import PlayerHelper
 import ExternalDefines
 import IPlayerUnit
-import EffectHelper
 
 init
-    Player(0).init_self(CreateUnitAtLoc(Player(0), ICEMAGE_ID, LOCATION_BORN, bj_UNIT_FACING), career.ice_mage)
-   // PolledWait(5)
-    EffectHelper.init_effect()
-    Player(0).destr_self()
+    Player(0).init_self(CreateUnitAtLoc(Player(0), ICE_MAGE, LOCATION_BORN, bj_UNIT_FACING), career.ice_mage)
+
+    //Player(0).destr_self()

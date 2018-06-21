@@ -4,6 +4,7 @@ import TimerUtils
 import ExternalDefines
 import HashMap
 import TriggerHelper
+import EditorHelper
 
 class Data
     construct (unit uTarget)
@@ -37,7 +38,7 @@ class Data
 
 
 public class IceBarrier extends IceMageSkill
-    static constant int self_id = 'A008'
+    static constant int self_id = 'im0r'
     static constant real shield_hp = 750.0
     static constant int buff_id = 'B001'
     static constant real last_time = 45
@@ -147,3 +148,34 @@ public class IceBarrier extends IceMageSkill
         data_manager.remove(dt.m_u)
         destroy dt
 
+@compiletime
+function create_ice_barrier()
+    var editor = EditorHelper.create_channel_template(IceBarrier.self_id, emSkillKey.R)
+    editor..setCastRange(1, 1100)
+        ..setManaCost(1, 45)
+        ..setCooldown(1, 5)
+        ..setButtonPositionNormalX(3)
+        ..setButtonPositionNormalY(2)
+        ..setHotkeyNormal("R")
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ALLY)
+        ..setTargetType(1, emTargetType.Unit castTo int)
+        ..setName("IceBarrier")
+        ..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Ice Barrier" +
+            Color_Define.COLOR_HOT_KEY + "(R)")
+        ..setTooltipNormalExtended(1,
+            Color_Define.COLOR_NORMAL + "给目标施加寒冰屏障，可以为目标吸收最大750点伤害。|n" +
+            Color_Define.COLOR_LAST_TIME + "持续45秒。|n" +
+            Color_Define.COLOR_COOL_DOWN + "CD:5s")
+        ..setIconNormal("Ice Barrier.blp")
+        ..setTargetAttachmentPoint("origin")
+        ..setBuffs(1, "B001")
+        ..setDurationHero(1, 45.)
+        ..setDurationNormal(1, 45.)
+        
+        
+    destroy editor
+
+init
+    if compiletime
+        create_ice_barrier()

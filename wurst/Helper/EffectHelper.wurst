@@ -1,16 +1,25 @@
 package EffectHelper
-
 import EditorHelper
-import HashMap
 
 class EffectHelper
-    private static var effect_id_map = new HashMap<string, int>
-    static var effect_unit_map = new HashMap<string, unit>
+    
+    /** Effect Scaling DIY 
+        @attention  if ur effect don't need to change its size, use flashEffect instead.
+        @attention  some effect cannot DIY scaling, like Particle Effects.(Thank CloudFox)
+    */
     @compiletime
     static function init_effect()
         if compiletime
-            effect_id_map.put("0.9BlinkCaster", EditorHelper.create_effect_faker(0.9, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl"))
-        else
-            effect_unit_map.put("0.9BlinkCaster", createUnit(Player(0), effect_id_map.get("0.9BlinkCaster"), vec2(0, 0), angle(0)))
+            EditorHelper.create_effect_faker_unit('5rbk', 0.5, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", color(255,0,0))
+            EditorHelper.create_effect_faker_unit('0rbk', 1.0, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", color(255,0,0))
 
+    /** Effect Scaling DIY 
+        @attention  if ur effect don't need to change its size, use flashEffect instead.
+    */
+    static function flash_effect(int effect_id, vec2 target)
+        createUnit(Player(8), effect_id, target, angle(0))..setTimedLife(1.5)
             
+        
+            
+init
+    EffectHelper.init_effect()

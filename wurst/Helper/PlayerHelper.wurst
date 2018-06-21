@@ -3,6 +3,7 @@ import Table
 import ExternalDefines
 import initlater IceMage
 import initlater FireMage
+import initlater PlayerUnit
 
 public function player.get_unit() returns unit
     return PlayerHelper.get_player_unit(this)

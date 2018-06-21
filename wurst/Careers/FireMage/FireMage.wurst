@@ -1,5 +1,5 @@
 package FireMage
-import public PlayerUnit
+import PlayerUnit
 
 public class FireMage extends PlayerUnit
 	construct(player pl, unit u)

@@ -2,24 +2,104 @@ package EditorHelper
 
 import NoWurst
 import AbilityObjEditing
+import ObjectIds
+import Colors
+
+public enum emTargetType
+    None
+    Unit
+    Ground
+    GroundorUnit
+
+public enum emSkillKey
+    Q
+    W
+    E
+    R
+    D
+    F
+    G
+
+let ORDERS = ["doom", "channel", "polymorph", "farsight", "divineshield", "magicleash", "unholyfrenzy"]
+
 
 class EditorHelper
-    static private int u_id = 'u999'
-    static private int s_id = 's999'
-
-    static function create_effect_faker(real size, string effect_path) returns int
-        var s_editor = new AbilityDefinition(s_id, 'A000')
+    static function create_effect_faker_skill(int id, string effect_path)
+        var s_editor = new AbilityDefinitionIllidanChannel(id)
         s_editor..setArtEffect(effect_path)
-        var u_editor = new UnitOrBuildingOrHeroDefinition(u_id, 'h005')
+            ..setHotkeyNormal("")
+            ..setArtCaster("")
+            ..setHeroAbility(false)
+            ..setLevels(1)
+            ..setCooldown(1, 0)
+            ..setManaCost(1, 0)
+            ..setCastRange(1, 99999)
+            ..setCastingTime(1, 0)
+            ..setTargetType(1, 2)
+            ..setArtDuration(1, 0)
+            ..setFollowThroughTime(1, 0)
+            ..setOptions(1, 1)
+            ..setName(id.toRawCode())
+        destroy s_editor
+
+    static function create_caster_faker_unit(int id, real size)
+        var u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
         u_editor..setScalingValue(size)
+            ..setSpeedBase(0)
             ..setScaleProjectiles(true)
             ..setTurnRate(3)
             ..setManaMaximum(9999)
             ..setManaRegeneration(9999.)
             ..setManaInitialAmount(9999)
-            ..setNormalAbilities(I2S(s_id))
-        u_id--
-        s_id--
+            ..setHitPointsMaximumBase(9999)
+            ..setNormalAbilities("Aloc")
+            ..setShadowImageUnit("")
+            ..setShadowTextureBuilding("")
+            ..setHasWaterShadow(false)
+            ..setShadowImageCenterX(0.)
+            ..setShadowImageCenterY(0.)
+            ..setShadowImageHeight(0.)
+            ..setShadowImageWidth(0.)
+            ..setName(id.toRawCode())
         destroy u_editor
-        destroy s_editor
-        return u_id
+
+    static function create_effect_faker_unit(int id, real size, string effect_path, color cl)
+        var u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
+        u_editor..setScalingValue(size)
+            ..setModelFile(effect_path)
+            ..setSpeedBase(0)
+            ..setHitPointsMaximumBase(9999)
+            ..setNormalAbilities("Aloc")
+            ..setTintingColorRed(cl.red)
+            ..setTintingColorBlue(cl.blue)
+            ..setTintingColorGreen(cl.green)
+            ..setShadowImageUnit("")
+            ..setShadowTextureBuilding("")
+            ..setHasWaterShadow(false)
+            ..setShadowImageCenterX(0.)
+            ..setShadowImageCenterY(0.)
+            ..setShadowImageHeight(0.)
+            ..setShadowImageWidth(0.)
+            ..setName(id.toRawCode())
+        destroy u_editor
+
+    
+    static function create_channel_template(int id, emSkillKey k) returns AbilityDefinitionIllidanChannel
+        string base_order = ORDERS[k castTo int]
+        var s_editor = new AbilityDefinitionIllidanChannel(id)
+        s_editor..setOptions(1, 1)
+            ..setArtTarget("")
+            ..setArtEffect("")
+            ..setTargetAttachmentPoint("")
+            ..setArtCaster("")
+            ..setCasterAttachmentPoint("")
+            ..setHeroAbility(false)
+            ..setLevels(1)
+            ..setCastingTime(1, 0)
+            ..setArtDuration(1, 0)
+            ..setFollowThroughTime(1, 0)
+            ..setOptions(1, 1)
+            ..setBaseOrderID(1, base_order)
+            ..setOrderStringUseTurnOn(base_order)
+
+        return s_editor

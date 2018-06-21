@@ -1,8 +1,10 @@
 package ForstBolt
 import IceMage
+import EditorHelper
+import ExternalDefines
 
 public class ForstBolt extends IceMageSkill
-	static constant int self_id = 'A009'
+	static constant int self_id = 'im0q'
 	static constant real dmg = 220.
 	//static constant int buff_id = 'B001'
 	
@@ -13,10 +15,38 @@ public class ForstBolt extends IceMageSkill
 		m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
 			..addCondition(Filter(()->GetSpellAbilityId()==ForstBolt.self_id))
 			..addAction(function skill_act_forwarding)
-
 	
 	override function cast()
 		m_self_unit.damageTarget(GetSpellTargetUnit(), ForstBolt.dmg, ATTACK_TYPE_NORMAL)
 
 	override function get_self_id() returns int
 		return ForstBolt.self_id
+
+@compiletime
+function create_frost_bolt()
+	var editor = EditorHelper.create_channel_template(ForstBolt.self_id, emSkillKey.Q)
+	editor..setCastRange(1, 1300)
+		..setManaCost(1, 17)
+		..setCooldown(1, 1.8)
+		..setButtonPositionNormalX(0)
+		..setButtonPositionNormalY(2)
+		..setHotkeyNormal("Q")
+		..setTargetsAllowed(1, TYPE_ALLOWED_COMMON)
+		..setTargetType(1, emTargetType.Unit castTo int)
+		..setName("FrostBolt")
+		..setTooltipNormal(1,
+			Color_Define.COLOR_ICEMAGE + "Frost Bolt" +
+			Color_Define.COLOR_HOT_KEY + "(Q)")
+		..setTooltipNormalExtended(1,
+			Color_Define.COLOR_NORMAL + "向目标射出一枚寒冰箭，造成220伤害。|n" +
+			Color_Define.COLOR_MANA_DECREASE + "减少目标4点能量。|n" +
+			Color_Define.COLOR_COOL_DOWN + "CD:1.8s")
+		..setIconNormal("frostbolt.blp")
+		..setArtTarget("Abilities\\Spells\\Items\\SpellShieldAmulet\\SpellShieldCaster.mdl")
+		..setTargetAttachmentPoint("head")
+		
+	destroy editor
+
+init
+	if compiletime
+		create_frost_bolt()

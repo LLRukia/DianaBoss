@@ -1,0 +1,15 @@
+package Test
+import EffectHelper
+
+function test()
+    EffectHelper.flash_effect('5rbk', vec2(0,0))
+    EffectHelper.flash_effect('0rbk', vec2(10,10))
+
+
+init
+    var tr = CreateTrigger()
+    for i = 0 to 7
+        tr.registerPlayerChatEvent(Player(i), "-test", true)
+    tr..addAction(function test)
+        ..enable()
+        

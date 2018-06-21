@@ -1,8 +1,18 @@
 package ExternalDefines
 import NoWurst
 
-public constant boolean _DEBUG = true
+public let _DEBUG = true
 
-public constant int ICEMAGE_ID = 'H000'
+public let LOCATION_BORN = GetRectCenter(Rect(- 704.0, - 1248.0, 288.0, - 768.0))
+public let ICE_MAGE = 'H0IM'
+public let TYPE_ALLOWED_COMMON = "alive,enemies,ground,structure,air,ward"
+public let TYPE_ALLOWED_ALLY = "alive,ground,air,friend,self"
 
-public constant location LOCATION_BORN = GetRectCenter(Rect(- 704.0, - 1248.0, 288.0, - 768.0))
+public class Color_Define
+    static let COLOR_ICEMAGE       = "|cffCECEFF"
+
+    static let COLOR_MANA_DECREASE = "|cffCECEFF"
+    static let COLOR_COOL_DOWN     = "|cffFFFF37"
+    static let COLOR_HOT_KEY       = "|cffFFCC00"
+    static let COLOR_NORMAL        = "|cffFFFFFF"
+    static let COLOR_LAST_TIME     = "|cffccffcc"
