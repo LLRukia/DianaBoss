@@ -5,6 +5,7 @@ import ExternalDefines
 import HashMap
 import TriggerHelper
 import EditorHelper
+import BuffObjEditing
 
 class Data
     construct (unit uTarget)
@@ -18,14 +19,12 @@ class Data
         m_tx = createTTEx(m_u.getPos3Zero(), m_fShieldHP.toString(), 9)
     
     ondestroy
-        m_u.removeAbility(IceBarrier.buff_id)
-        m_tPosUpdate.pause()
-        m_tPosUpdate.destr()
-        m_tDestroy.pause()
-        m_tDestroy.destr()
+        m_u.remove_buff(IceBarrier.buff_id)
+        m_tPosUpdate..pause()..destr()
+        m_tDestroy..pause()..destr()
         m_tx.destr()
-        m_trDmg.disable()
-        m_trDmg.destr()
+        m_trDmg..disable()..destr()
+        m_trDeath..disable()..destr()
     
     unit m_u
     timer m_tPosUpdate
@@ -40,7 +39,7 @@ class Data
 public class IceBarrier extends IceMageSkill
     static constant int self_id = 'im0r'
     static constant real shield_hp = 750.0
-    static constant int buff_id = 'B001'
+    static constant int buff_id = 'im0b'
     static constant real last_time = 45
     static private var data_manager = new HashMap<unit, Data>
     construct(unit u)
@@ -66,7 +65,7 @@ public class IceBarrier extends IceMageSkill
             if _DEBUG
                 print("IceBarrier::COVER CHECK ERROR")
             return
-        
+        dt.m_u.add_buff(IceBarrier.buff_id, BuffClearType.stable, BuffType.buffs)
         dt.m_tPosUpdate..setData(dt castTo int)
             ..startPeriodic(0.03, function IceBarrier.pos_update)
 
@@ -167,13 +166,18 @@ function create_ice_barrier()
             Color_Define.COLOR_COOL_DOWN + "CD:5s")
         ..setIconNormal("Ice Barrier.blp")
         ..setTargetAttachmentPoint("origin")
-        ..setBuffs(1, "B001")
         ..setDurationHero(1, 45.)
-        ..setDurationNormal(1, 45.)
-        
+        ..setDurationNormal(1, 45.) 
         
     destroy editor
 
-init
-    if compiletime
-        create_ice_barrier()
+@compiletime
+function create_ice_barrier_buff()
+    var editor = new BuffDefinition(IceBarrier.buff_id, 'BHwe')
+    editor..setName(1, "Ice Barrier")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Barrier")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_ICEMAGE + "此单位被寒冰护盾庇护着。")
+        ..setArtTarget(1, "Abilities\\Spells\\Undead\\FrostArmor\\FrostArmorTarget.mdl")
+        ..setTargetAttachmentPoint0(1, "chest")
+
+    destroy editor

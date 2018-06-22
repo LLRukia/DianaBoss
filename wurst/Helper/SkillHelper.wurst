@@ -5,8 +5,11 @@ import Unit
 import MathHelper
 import TimerUtils
 import Effect
+import UnitObjEditing
+import ObjectIds
 
 class Rush
+    static let unit_id = 'rush'
     construct(unit u, angle ang, real speed, real dis, bool pause, string effect_path)
         this.u = u
         this.ang = ang
@@ -30,9 +33,9 @@ class Rush
         var data = t.getData() castTo Rush
         vec2 pos = data.u.getPos()
         pos = MathHelper.forward(pos, data.ang, data.speed)
-        unit uExplorer = createUnit(data.u.getOwner(), 'h006', pos, data.ang)
+        unit uExplorer = createUnit(data.u.getOwner(), Rush.unit_id, pos, data.ang)
 
-        if not IssueBuildOrderById(uExplorer, 'h006', pos.x, pos.y) or data.moved_dis >= data.dis
+        if not IssueBuildOrderById(uExplorer, Rush.unit_id, pos.x, pos.y) or data.moved_dis >= data.dis
             if data.pause
                 data.u.unpause()
             destroy data
@@ -65,3 +68,22 @@ public class SkillHelper
     private construct()
 
     
+@compiletime
+function create_rush_explorer()
+    var editor = new UnitDefinition(Rush.unit_id, 'hpea')
+    editor..setNormalAbilities("Aeth,Aloc,Ahrp")
+        ..setStructuresBuilt(Rush.unit_id.toRawCode())
+        ..setCollisionSize(24.)
+        ..setName("RUSH")
+        ..setShadowImageUnit("")
+        ..setArtSpecial("")
+        ..setSpeedBase(0)
+        ..setAttacksEnabled(0)
+        ..setHitPointsMaximumBase(9999)
+        ..setFoodCost(0)
+        ..setUnitClassification("")
+        ..setGoldCost(0)
+        ..setLumberCost(0)
+        ..setSightRadiusDay(0)
+        ..setSightRadiusNight(0)
+    destroy editor

@@ -41,7 +41,6 @@ function create_frost_bolt()
 			Color_Define.COLOR_COOL_DOWN + "CD:1.8s")
 		..setIconNormal("frostbolt.blp")
 		..setArtTarget("Abilities\\Spells\\Items\\SpellShieldAmulet\\SpellShieldCaster.mdl")
-		..setTargetAttachmentPoint("head")
 		
 	destroy editor
 
