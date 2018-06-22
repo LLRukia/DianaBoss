@@ -3,7 +3,7 @@ package EditorHelper
 import NoWurst
 import AbilityObjEditing
 import ObjectIds
-import Colors
+import public Colors
 
 /**
 附加点: 
@@ -11,8 +11,7 @@ hand 手
 foot 脚
 real 后肢(四足生物)
 weapon 武器 
-left right
-修饰手脚等附加点,添加在前面和后面都可以
+left right 修饰手脚等附加点,添加在前面和后面都可以
 head 头部
 overhead 头顶
 chest 胸部
@@ -102,6 +101,7 @@ class EditorHelper
             ..setShadowImageHeight(0.)
             ..setShadowImageWidth(0.)
             ..setName(id.toRawCode())
+            ..setFoodCost(0)
         destroy u_editor
 
     
@@ -123,5 +123,23 @@ class EditorHelper
             ..setBaseOrderID(1, base_order)
             ..setOrderStringUseTurnOn(base_order)
             ..setDisableOtherAbilities(1,false)
+
+        return s_editor
+
+    static function create_aura(int id) returns AbilityDefinition
+        var s_editor = new AbilityDefinitionItemAuraEndurance(id)
+        s_editor..setMovementSpeedIncrease(1, 0)
+            ..setAttackSpeedIncrease(1, 0)
+            ..setHeroAbility(false)
+            ..setTargetsAllowed(1, "self")
+
+        return s_editor
+
+    static function create_magic_book(int id, string spell_list) returns AbilityDefinition
+        var s_editor = new AbilityDefinitionSpellBook(id)
+        s_editor..setMinimumSpells(1, 1)
+            ..setSpellList(1, spell_list)
+            ..setLevels(1)
+
 
         return s_editor

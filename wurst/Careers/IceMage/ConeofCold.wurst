@@ -1,14 +1,39 @@
 package ConeofCold
 
 import IceMage
+import EditorHelper
+import ExternalDefines
 
 public class ConeofCold extends IceMageSkill
 	construct(unit u)
 		super(u)
 	
-	static constant int self_id = 'A005'
+	static constant int self_id = 'im0w'
 	static constant real shield_hp = 750.0
 	static constant int buff_id = 'B001'
 	static constant real last_time = 45
 	override function listen()
+
 	override function cast()
+
+@compiletime
+function create_ice_lance_help()
+	var editor = EditorHelper.create_channel_template(ConeofCold.self_id, emSkillKey.W)
+	editor..setCastRange(1, 1100)
+		..setManaCost(1, 0)
+		..setCooldown(1, 0)
+		..setButtonPositionNormalX(1)
+		..setButtonPositionNormalY(2)
+		..setHotkeyNormal("W")
+		..setTargetType(1, emTargetType.Ground castTo int)
+		..setName("ConeOfCold")
+		..setTooltipNormal(1,
+			Color_Define.COLOR_ICEMAGE + "Cone of Cold" +
+			Color_Define.COLOR_HOT_KEY + "(W)")
+		..setTooltipNormalExtended(1,
+			Color_Define.COLOR_NORMAL + "向前方射出3道冰锥，对敌人造成240伤害。冰锥命中冰墙后，会使得自身提升30%移动速度。|n" +
+			Color_Define.COLOR_LAST_TIME + "加速持续10秒。|n" +
+			Color_Define.COLOR_COOL_DOWN + "CD:8s")
+		..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNGlacier.blp")
+
+	destroy editor

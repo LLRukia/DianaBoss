@@ -1,0 +1,92 @@
+package Buffs
+
+import NoWurst
+import HashSet
+import Unit
+import Printing
+import PlayerUnitHelper
+import initlater PlayerUnit
+import ExternalDefines
+
+public enum BuffClearType
+    volatile        //
+    additions       //"D" can remove
+    stable          //"D" cannot remove but "purge" can
+    inherent        //permanent exist
+
+public enum BuffType
+    debuffs         //--
+    buffs           //++
+
+class Buff
+    protected int m_buff_id
+    protected BuffClearType m_cltp
+    protected BuffType m_tp
+    
+    construct(int id, BuffClearType cltp, BuffType tp)
+        m_buff_id = id
+        m_cltp = cltp
+        m_tp = tp
+    ondestroy
+
+
+public class Buffs
+    protected var set_buff = new HashSet<Buff>
+    protected unit m_u
+    construct(unit u)
+        m_u = u
+
+    function add_buff(int id, BuffClearType cltp, BuffType tp)
+        m_u.addAbility(id)
+        set_buff.add(new Buff(id, cltp, tp))
+
+    function remove_buff(BuffClearType cltp, BuffType tp)
+        for bf in set_buff
+            if bf.m_tp == tp
+                if bf.m_cltp castTo int <= cltp castTo int
+                    set_buff.remove(bf)
+                    m_u.removeAbility(bf.m_buff_id)
+                    destroy bf
+
+    function remove_buff(int id)
+        for bf in set_buff
+            if bf.m_buff_id == id
+                set_buff.remove(bf)
+                m_u.removeAbility(id)
+                destroy bf
+
+public function unit.add_buff(int id, BuffClearType cltp, BuffType tp)
+    var hdl = PlayerUnitHelper.get_instance(this)
+    if hdl == -1
+        this.addAbility(id)
+    else
+        var obj = hdl castTo PlayerUnit
+        if obj == null
+            if _DEBUG
+                print("unit.add_buff error")
+            return
+        obj.add_buff(id, cltp, tp)
+
+public function unit.remove_buff(int id)
+    var hdl = PlayerUnitHelper.get_instance(this)
+    if hdl == -1
+        this.removeAbility(id)
+    else
+        var obj = hdl castTo PlayerUnit
+        if obj == null
+            if _DEBUG
+                print("unit.remove_buff error")
+            return
+        obj.remove_buff(id)
+
+public function unit.remove_buff(BuffClearType cltp, BuffType tp)
+    var hdl = PlayerUnitHelper.get_instance(this)
+    if hdl == -1
+        return
+    else
+        var obj = hdl castTo PlayerUnit
+        if obj == null
+            if _DEBUG
+                print("unit.remove_buff(multi) error")
+            return
+        obj.remove_buff(cltp, tp)

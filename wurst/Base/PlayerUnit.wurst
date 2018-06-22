@@ -7,7 +7,7 @@ import BaseSkills
 
 public class PlayerUnit extends IPlayerUnit
     protected var m_mapSkill = new IterableMap<int, IBaseSkills>
-
+    protected Buffs m_buffs
     override function listen_all()
         for s in m_mapSkill
             m_mapSkill.get(s).listen()
@@ -20,9 +20,19 @@ public class PlayerUnit extends IPlayerUnit
     override function init_self()
         skip
 
+    override function add_buff(int id, BuffClearType cltp, BuffType tp)
+        m_buffs.add_buff(id, cltp, tp)
+
+    override function remove_buff(BuffClearType cltp, BuffType tp)
+        m_buffs.remove_buff(cltp, tp)
+    
+    override function remove_buff(int id)
+        m_buffs.remove_buff(id)
+        
     construct(player pl, unit u)
         m_self_unit = u
         m_control_player = pl
+        m_buffs = new Buffs(u)
         //whenver create a playerunit, register it!
         //actually, in this map, each player only has one unit
         if not PlayerHelper.register_controlling_unit(pl, u)
@@ -37,3 +47,5 @@ public class PlayerUnit extends IPlayerUnit
              print("repeat choose")
         for s in m_mapSkill
             destroy m_mapSkill.get(s)
+
+    

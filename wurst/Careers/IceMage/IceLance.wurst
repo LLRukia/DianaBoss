@@ -5,12 +5,14 @@ import MathHelper
 import TriggerHelper
 import HashMap
 import ExternalDefines
+import EditorHelper
+import UnitObjEditing
 
 public class IceLance extends IceMageSkill
-	static constant int self_id = 'A007'
-	static constant int help_id = 'A006'
+	static constant int self_id = 'im0e'
+	static constant int help_id = 'im1e'
 	static constant real last_time = 10.
-	static constant int unit_id = 'h003'
+	static constant int unit_id = 'im0u'
 	static constant real unit_offset = 95.
 	static constant int unit_count = 6
 	static constant real dmg_radius = 55.
@@ -105,3 +107,77 @@ public class IceLance extends IceMageSkill
 		from_unit = true
 		pt1 = vec2(0,0)
 		pt2 = vec2(0,0)
+
+
+@compiletime
+function create_ice_lance()
+	var editor = EditorHelper.create_channel_template(IceLance.self_id, emSkillKey.E)
+	editor..setCastRange(1, 900)
+		..setManaCost(1, 27)
+		..setCooldown(1, 6)
+		..setButtonPositionNormalX(2)
+		..setButtonPositionNormalY(2)
+		..setHotkeyNormal("E")
+		..setTargetType(1, emTargetType.Ground castTo int)
+		..setName("IceLance")
+		..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Ice Lance" +
+            Color_Define.COLOR_HOT_KEY + "(E)")
+		..setTooltipNormalExtended(1,
+            Color_Define.COLOR_NORMAL + "依次选择两个点，从第一个点向第二个点释放IceLance，对命中单位造成300伤害。|n" +
+            Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+            Color_Define.COLOR_COOL_DOWN + "CD:6s")
+		..setIconNormal("Ice Lance.blp")
+		..setArtEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
+
+	destroy editor
+
+@compiletime
+function create_ice_lance_help()
+	var editor = EditorHelper.create_channel_template(IceLance.help_id, emSkillKey.E)
+	editor..setCastRange(1, 1100)
+		..setManaCost(1, 0)
+		..setCooldown(1, 0)
+		..setButtonPositionNormalX(2)
+		..setButtonPositionNormalY(2)
+		..setHotkeyNormal("E")
+		..setTargetType(1, emTargetType.Ground castTo int)
+		..setName("IceLanceHelp")
+		..setTooltipNormal(1,
+            Color_Define.COLOR_ICEMAGE + "Ice Lance (Direction)" +
+            Color_Define.COLOR_HOT_KEY + "(E)")
+		..setTooltipNormalExtended(1,
+            Color_Define.COLOR_NORMAL + "依次选择两个点，从第一个点向第二个点释放IceLance，对命中单位造成300伤害。|n" +
+            Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+            Color_Define.COLOR_COOL_DOWN + "CD:6s")
+		..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNAttackGround.blp")
+		..setArtEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
+
+	destroy editor
+
+@compiletime
+function create_ice_lance_ice_block()
+	var editor = new UnitDefinition(IceLance.unit_id, 'hwat')
+	editor..setName("Ice Block")
+		..setUpgradesUsed("")
+		..setCollisionSize(24.)
+		..setUnitSoundSet("")
+		..setScalingValue(.45)
+		..setModelFile("Doodads\\Icecrown\\Rocks\\Icecrown_Crystal\\Icecrown_Crystal7.mdl")
+		..setSelectionScale(1.)
+		..setDeathTimeseconds(0.1)
+		..setSpeedBase(0)
+		..setDefenseBase(0)
+		..setArmorType(ArmorType.Hero)
+		..setAcquisitionRange(0.)
+		..setAttacksEnabled(0)
+		..setLevel(1)
+		..setHitPointsMaximumBase(2000)
+		..setHitPointsRegenerationRate(0.)
+		..setSightRadiusDay(0)
+		..setSightRadiusNight(0)
+		..setHideMinimapDisplay(true)
+		..setFoodCost(0)
+
+
+	destroy editor
