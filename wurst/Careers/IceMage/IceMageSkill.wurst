@@ -6,6 +6,7 @@ import public initlater IceLance
 import public initlater ForstBolt
 import public initlater ConeofCold
 import BaseSkills
+
 public enum emSkill
 	Frost_Bolt
 	Cone_of_Cold
@@ -22,3 +23,5 @@ public class IceMageSkill extends IBaseSkills
 			print("IceMageSkill::error call")
 		
 	override function listen()
+
+	override function destroy_buff(unit _u)

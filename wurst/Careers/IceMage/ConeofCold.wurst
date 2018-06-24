@@ -3,23 +3,68 @@ package ConeofCold
 import IceMage
 import EditorHelper
 import ExternalDefines
+import MathHelper
+import TimerUtils
+import LinkedList
+import SkillHelper
 
 public class ConeofCold extends IceMageSkill
 	construct(unit u)
 		super(u)
 	
 	static constant int self_id = 'im0w'
-	static constant real shield_hp = 750.0
-	static constant int buff_id = 'B001'
-	static constant real last_time = 45
+	static constant real max_dis = 900
+	static constant real dmg = 240.
 	override function listen()
+		m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+		..addCondition(Filter(()->GetSpellAbilityId()==ConeofCold.self_id))
+		..addAction(function skill_act_forwarding)
 
 	override function cast()
+		vec2 pt_target = vec2(GetSpellTargetX(), GetSpellTargetY())
+		vec2 pt_caster = m_self_unit.getPos()
+		real ang = MathHelper.get_angle(pt_caster, pt_target).degrees()
+		vec2 pt_ori = MathHelper.forward(pt_caster, ang, -80)
+		var ls = new LinkedList<unit>
+		int num = 30
+		real delta_dis = max_dis/num
+		real delta_scl = 2.8 / num
+		for i = 1 to num
+			var u = createUnit(m_self_unit.getOwner(), '0imw',
+				MathHelper.coor_polar2abso(i*delta_dis, ang)+pt_caster, ang.asAngleDegrees())
+			u.setScale(0.8+delta_scl*(i-1))
+			ls.add(u)
 
+		group g = CreateGroup()
+		g.enumUnitsInRange(pt_caster, 1000)
+		for uTarget in g
+			var ptt = uTarget.getPos()
+			var plt = MathHelper.coor_abso2polar(ptt - pt_ori)
+			if plt.y >= ang - 30 and plt.y <= ang + 30
+				if not IsUnitAlly(uTarget, m_self_unit.getOwner()) and uTarget.isAlive()
+					m_self_unit.damageTarget(uTarget, ConeofCold.dmg)
+					flashEffect("Abilities\\Spells\\Items\\SpellShieldAmulet\\SpellShieldCaster.mdl", ptt)
+					SkillHelper.rush(uTarget, ang.asAngleDegrees(), 150., 25., false, "Abilities\\Spells\\Items\\SpellShieldAmulet\\SpellShieldCaster.mdl")
+				
+		g.destr()
+
+		CreateTimer()..setData(ls castTo int)
+					..startPeriodic(0.7, function clear_unit)
+
+	static function clear_unit()
+		var t = GetExpiredTimer()
+		var ls = t.getData() castTo LinkedList<unit>
+		for i in ls
+			RemoveUnit(i)
+		destroy ls
+		t..pause()..destr()
+
+
+	
 @compiletime
 function create_ice_lance_help()
 	var editor = EditorHelper.create_channel_template(ConeofCold.self_id, emSkillKey.W)
-	editor..setCastRange(1, 1100)
+	editor..setCastRange(1, 99999)
 		..setManaCost(1, 0)
 		..setCooldown(1, 0)
 		..setButtonPositionNormalX(1)
@@ -37,3 +82,13 @@ function create_ice_lance_help()
 		..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNGlacier.blp")
 
 	destroy editor
+
+@compiletime
+function create_cone()
+	var ed = EditorHelper.create_effect_faker_unit('0imw', 1.0,
+		"Doodads\\LordaeronSummer\\Water\\ShorelineWave\\ShorelineWave1.mdl",
+		color(255,255,255))
+	ed..setNormalAbilities("Arav,Aloc")
+		..setMovementType(MovementType.Fly)
+		..setMovementHeightMinimum(25)
+

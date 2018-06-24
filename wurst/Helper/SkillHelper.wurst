@@ -7,8 +7,9 @@ import TimerUtils
 import Effect
 import UnitObjEditing
 import ObjectIds
-
+import Printing
 class Rush
+    static let default_effect = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
     static let unit_id = 'rush'
     construct(unit u, angle ang, real speed, real dis, bool pause, string effect_path)
         this.u = u
@@ -17,7 +18,6 @@ class Rush
         this.dis = dis
         this.pause = pause
         this.effect_path = effect_path
-        moved_dis = 0
         rush()
 
     private function rush()
@@ -25,6 +25,7 @@ class Rush
             return
         if pause
             u.pause()
+        u.addAbility('Aeth')
         CreateTimer()..setData(this castTo int)
             ..startPeriodic(0.03, function Rush.rush_timer)
     
@@ -34,14 +35,16 @@ class Rush
         vec2 pos = data.u.getPos()
         pos = MathHelper.forward(pos, data.ang, data.speed)
         unit uExplorer = createUnit(data.u.getOwner(), Rush.unit_id, pos, data.ang)
+        uExplorer.setTimedLife(1)
 
         if not IssueBuildOrderById(uExplorer, Rush.unit_id, pos.x, pos.y) or data.moved_dis >= data.dis
             if data.pause
                 data.u.unpause()
+            data.u.removeAbility('Aeth')
             destroy data
             t..pause()..destr()
             return
-            
+        print("rush")
         data.u.setPos(pos)
         flashEffect(data.effect_path, pos)
         data.moved_dis += data.speed
@@ -51,15 +54,15 @@ class Rush
     real speed
     real dis
     bool pause
-    real moved_dis
-    string effect_path
+    real moved_dis = 0
+    string effect_path = Rush.default_effect
 
 class FanShaped
     
 
 public class SkillHelper
     static function rush(unit u, angle ang, real dis, real speed, bool pauseUnit, string effect_path)
-        new Rush(u, ang, dis, speed, pauseUnit, effect_path)
+        new Rush(u, ang, speed, dis, pauseUnit, effect_path)
 
     static function flash()
         
@@ -86,4 +89,5 @@ function create_rush_explorer()
         ..setLumberCost(0)
         ..setSightRadiusDay(0)
         ..setSightRadiusNight(0)
+        ..setModelFile(".mdl")
     destroy editor

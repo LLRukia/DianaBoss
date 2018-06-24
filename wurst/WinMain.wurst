@@ -1,10 +1,9 @@
 package WinMain
-
-import PlayerHelper
 import ExternalDefines
-import IPlayerUnit
+import Camera
 
 init
-    Player(0).init_self(CreateUnitAtLoc(Player(0), ICE_MAGE, LOCATION_BORN, bj_UNIT_FACING), career.ice_mage)
-
-    //Player(0).destr_self()
+    
+    for i = 0 to 7
+        Player(i)..panCameraToTimed(PICK_RECT.getCenter(),0)
+            ..setCameraBoundsToRect(PICK_RECT)

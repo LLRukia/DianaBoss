@@ -1,12 +1,13 @@
 package Buffs
 
 import NoWurst
-import HashSet
+import HashMap
 import Unit
 import Printing
 import PlayerUnitHelper
 import initlater PlayerUnit
 import ExternalDefines
+
 
 public enum BuffClearType
     volatile        //
@@ -22,62 +23,69 @@ class Buff
     protected int m_buff_id
     protected BuffClearType m_cltp
     protected BuffType m_tp
-    
-    construct(int id, BuffClearType cltp, BuffType tp)
+    protected IBaseSkills m_cb
+    construct(int id, BuffClearType cltp, BuffType tp, IBaseSkills cb)
         m_buff_id = id
         m_cltp = cltp
         m_tp = tp
+        m_cb = cb
     ondestroy
 
 
 public class Buffs
-    protected var set_buff = new HashSet<Buff>
+    protected var set_buff = new IterableMap<int, Buff>
     protected unit m_u
     construct(unit u)
         m_u = u
 
-    function add_buff(int id, BuffClearType cltp, BuffType tp)
-        m_u.addAbility(id)
-        set_buff.add(new Buff(id, cltp, tp))
+
+    function add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills obj)
+        var temp = new Buff(id, cltp, tp, obj)
+        set_buff.put(id, temp)
 
     function remove_buff(BuffClearType cltp, BuffType tp)
-        for bf in set_buff
+        for id in set_buff
+            var bf = set_buff.get(id)
             if bf.m_tp == tp
-                if bf.m_cltp castTo int <= cltp castTo int
-                    set_buff.remove(bf)
+                if set_buff.get(id).m_cltp castTo int <= cltp castTo int
+                    set_buff.remove(id)
                     m_u.removeAbility(bf.m_buff_id)
+                    bf.m_cb.destroy_buff(m_u)
                     destroy bf
 
     function remove_buff(int id)
-        for bf in set_buff
-            if bf.m_buff_id == id
-                set_buff.remove(bf)
-                m_u.removeAbility(id)
-                destroy bf
+        if set_buff.has(id)
+            var bf = set_buff.get(id)
+            set_buff.remove(id)
+            m_u.removeAbility(id)
+            bf.m_cb.destroy_buff(m_u)
+            destroy bf
 
-public function unit.add_buff(int id, BuffClearType cltp, BuffType tp)
+public function unit.add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills ins)
     var hdl = PlayerUnitHelper.get_instance(this)
     if hdl == -1
-        this.addAbility(id)
+        return
     else
         var obj = hdl castTo PlayerUnit
         if obj == null
             if _DEBUG
                 print("unit.add_buff error")
             return
-        obj.add_buff(id, cltp, tp)
+        obj.add_buff(id, cltp, tp, ins)
 
-public function unit.remove_buff(int id)
+public function unit.remove_buff(int id) returns boolean
     var hdl = PlayerUnitHelper.get_instance(this)
     if hdl == -1
         this.removeAbility(id)
+        return false
     else
         var obj = hdl castTo PlayerUnit
         if obj == null
             if _DEBUG
                 print("unit.remove_buff error")
-            return
+            return false
         obj.remove_buff(id)
+        return true
 
 public function unit.remove_buff(BuffClearType cltp, BuffType tp)
     var hdl = PlayerUnitHelper.get_instance(this)

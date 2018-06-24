@@ -6,7 +6,6 @@ import TriggerHelper
 import HashMap
 import ExternalDefines
 import EditorHelper
-import UnitObjEditing
 
 public class IceLance extends IceMageSkill
 	static constant int self_id = 'im0e'
@@ -14,7 +13,7 @@ public class IceLance extends IceMageSkill
 	static constant real last_time = 10.
 	static constant int unit_id = 'im0u'
 	static constant real unit_offset = 95.
-	static constant int unit_count = 6
+	static constant int unit_count = 7
 	static constant real dmg_radius = 55.
 	static constant real dmg = 300.
 	
@@ -91,6 +90,7 @@ public class IceLance extends IceMageSkill
 			g.enumUnitsInRange(cur_loc, IceLance.dmg_radius)
 			for uTarget in g
 				if not dmg_once.has(uTarget) and not IsUnitAlly(uTarget, GetOwningPlayer(instance.m_self_unit))
+					and uTarget.isAlive()
 					instance.m_self_unit.damageTarget(uTarget, IceLance.dmg)
 					dmg_once.put(uTarget, true)
 			g.destr()

@@ -4,8 +4,6 @@ import public PlayerUnit
 import ExternalDefines
 import HashMap
 import public IceMageSkill
-import UnitObjEditing
-import ObjectIds
 import EditorHelper
 import BuffObjEditing
 
@@ -26,7 +24,8 @@ public class IceMage extends PlayerUnit
 function create_ice_mage()
 	var editor = new HeroDefinition(ICE_MAGE, 'Hjai')
 	string im_skill_list = ForstBolt.self_id.toRawCode() + "," + ConeofCold.self_id.toRawCode() + "," +
-		IceLance.self_id.toRawCode() + "," + IceBarrier.self_id.toRawCode() + "," + "AInv"
+		IceLance.self_id.toRawCode() + "," + IceBarrier.self_id.toRawCode() + "," +
+		"imbk," + "AInv"
 	editor..setNormalAbilities(im_skill_list)
 		..setHeroAbilities("")
 		..setDefaultActiveAbility("")
@@ -98,7 +97,7 @@ function create_im_id()
 	editor..setName(1, "IceMage")
 		..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Mage")
 		..setTooltipNormalExtended(1, Color_Define.COLOR_COOL_DOWN + "You are master of ice!")
-		..setIcon("IM.blp")
+		..setIconNormal(1, "IM.blp")
 
 @compiletime
 function create_im_mgcbook()

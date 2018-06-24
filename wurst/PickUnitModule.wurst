@@ -1,2 +1,54 @@
 package PickUnitModule
+import ExternalDefines
+import HashMap
+import PlayerHelper
+import Camera
 
+var pk = new HashMap<unit, int>
+hashtable clk = InitHashtable()
+
+function filter_pick() returns boolean
+    return pk.has(GetTriggerUnit())
+
+function pick()
+    player pl = GetTriggerPlayer()
+    int player_id = GetPlayerId(pl)
+    int unit_index = pk.get(GetTriggerUnit())
+    int times = LoadInteger(clk, player_id, unit_index)
+    boolean choosed = LoadBoolean(clk, player_id, CAREERS_NUM + 1)
+    if choosed
+        return
+    if times == 0
+        FlushChildHashtable(clk, player_id)
+        SaveInteger(clk, player_id, unit_index, 1)
+    else if times == 1
+        vec2 pos = BORN_RECT.getCenter()
+        pl..init_self(createUnit(pl, PICK_UNITS[unit_index], pos, angle(270)), PICK_CAREERS[unit_index])
+            ..setCameraBoundsToRect(BORN_RECT)
+            ..panCameraToTimed(BORN_RECT.getCenter(), 0)
+            
+    
+        FlushChildHashtable(clk, player_id)
+        SaveBoolean(clk, player_id, CAREERS_NUM + 1, true)
+        
+
+init
+    group g = CreateGroup()
+    g.enumUnitsInRect(PICK_RECT)
+    int index = 0
+    
+    for i in g
+        if index == CAREERS_NUM
+            break
+        pk.put(createUnit(Player(PLAYER_NEUTRAL_PASSIVE), PICK_UNITS[index], i.getPos(), angle(270)), index)
+        index ++
+    g.destr()
+
+    trigger tr = CreateTrigger()
+    for i = 0 to 7
+        tr.registerPlayerUnitEvent(Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+    
+    tr..addCondition(Filter(function filter_pick))
+    ..addAction(function pick)
+
+    

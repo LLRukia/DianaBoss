@@ -1,6 +1,5 @@
 package MathHelper
 import NoWurst
-import Wurstunit
 import Vectors
 import Maths
 
@@ -35,18 +34,14 @@ public class MathHelper
     static function coor_polar2abso(real r, real ang) returns vec2
         return vec2(r*CosBJ(ang), r*SinBJ(ang))
     
+    static function coor_polar2abso(vec2 pl) returns vec2
+        return vec2(pl.x*CosBJ(pl.y), pl.x*SinBJ(pl.y))
+        
     /** rotate a point anticlockwise(CCW) */
     static function rotate_point(vec2 pt, real ang) returns vec2
         var polar = MathHelper.coor_abso2polar(pt)
         return MathHelper.coor_polar2abso(polar.x, polar.y + ang)
 
-
     private construct()
 
 
-@test
-function vectorTests()
-    let v1 = vec2(1,0)
-    let r = 90.
-    (MathHelper.rotate_point(v1, r) == vec2(0,1)).assertTrue()
-    
