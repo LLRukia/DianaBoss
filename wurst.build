@@ -1,8 +1,9 @@
 ---
-projectName: "BossForWarcraftIII"
+projectName: "DefaultName"
 dependencies:
 - "https://github.com/wurstscript/wurstStdlib2"
 buildMapData:
-  name: "DefaultName"
-  fileName: "DefaultFileName"
-  author: "DefaultAuthor"
+  name: "Boss"
+  fileName: "Boss"
+  author: "Rukia"
+  playerCount: 1

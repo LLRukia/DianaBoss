@@ -58,6 +58,11 @@ public class IceBarrier extends IceMageSkill
         else
             start(u)
 
+    override function destroy_buff(unit u)
+        destroy data_manager.get(u)
+        data_manager.remove(u)
+        
+
     function start(unit u)
         Data dt = new Data(u)
         data_manager.put(u, dt)
@@ -65,7 +70,7 @@ public class IceBarrier extends IceMageSkill
             if _DEBUG
                 print("IceBarrier::COVER CHECK ERROR")
             return
-        dt.m_u.add_buff(IceBarrier.buff_id, BuffClearType.stable, BuffType.buffs)
+        dt.m_u.add_buff(IceBarrier.buff_id, BuffClearType.stable, BuffType.buffs, this)
         dt.m_tPosUpdate..setData(dt castTo int)
             ..startPeriodic(0.03, function IceBarrier.pos_update)
 
@@ -97,10 +102,7 @@ public class IceBarrier extends IceMageSkill
             dt.m_tDestroy.startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
         
     static function unit_death()
-        Data dt = GetTriggeringTrigger().getData() castTo Data
-        
-        data_manager.remove(dt.m_u)
-        destroy dt
+        IceBarrier.destr()
 
     static function protect_act()
         Data dt = GetTriggeringTrigger().getData() castTo Data
@@ -142,20 +144,22 @@ public class IceBarrier extends IceMageSkill
     
     static function destr()
         Data dt = GetExpiredTimer().getData() castTo Data
-        data_manager.remove(dt.m_u)
-        destroy dt
+        if not dt.m_u.remove_buff(buff_id)
+            destroy data_manager.get(dt.m_u)
+            data_manager.remove(dt.m_u)
 
 @compiletime
 function create_ice_barrier()
-    var editor = EditorHelper.create_channel_template(IceBarrier.self_id, emSkillKey.R)
-    editor..setCastRange(1, 1100)
+    var editor = new AbilityDefinitionUnholyFrenzycreep(IceBarrier.self_id)
+    editor..setAttackSpeedBonus(1, 0.)
+        ..setDamageperSecond(1, 0.)
+        ..setCastRange(1, 1100)
         ..setManaCost(1, 45)
-        ..setCooldown(1, 5)
+        ..setCooldown(1, 0)
         ..setButtonPositionNormalX(3)
         ..setButtonPositionNormalY(2)
         ..setHotkeyNormal("R")
         ..setTargetsAllowed(1, TYPE_ALLOWED_ALLY)
-        ..setTargetType(1, emTargetType.Unit castTo int)
         ..setName("IceBarrier")
         ..setTooltipNormal(1,
             Color_Define.COLOR_ICEMAGE + "Ice Barrier" +
@@ -165,19 +169,21 @@ function create_ice_barrier()
             Color_Define.COLOR_LAST_TIME + "持续45秒。|n" +
             Color_Define.COLOR_COOL_DOWN + "CD:5s")
         ..setIconNormal("Ice Barrier.blp")
-        ..setTargetAttachmentPoint("origin")
-        ..setDurationHero(1, 45.)
-        ..setDurationNormal(1, 45.) 
+        ..setBuffs(1, IceBarrier.buff_id.toRawCode())
+        ..setDurationHero(1, 45)
+        ..setDurationNormal(1, 45)
         
     destroy editor
 
 @compiletime
 function create_ice_barrier_buff()
-    var editor = new BuffDefinition(IceBarrier.buff_id, 'BHwe')
+    var editor = new BuffDefinition(IceBarrier.buff_id, 'Bdet')
     editor..setName(1, "Ice Barrier")
         ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Barrier")
-        ..setTooltipNormalExtended(1, Color_Define.COLOR_ICEMAGE + "此单位被寒冰护盾庇护着。")
-        ..setArtTarget(1, "Abilities\\Spells\\Undead\\FrostArmor\\FrostArmorTarget.mdl")
-        ..setTargetAttachmentPoint0(1, "chest")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位被寒冰护盾庇护着。")
+        ..setArtTarget(1, "imr.mdx")
+        ..setTargetAttachmentPoint0(1, "origin")
+        ..setIconNormal(1, "Ice Barrier.blp")
+
 
     destroy editor

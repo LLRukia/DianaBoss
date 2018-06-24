@@ -1,10 +1,10 @@
 package EditorHelper
 
 import NoWurst
-import AbilityObjEditing
-import ObjectIds
+import public AbilityObjEditing
+import public ObjectIds
 import public Colors
-
+import ExternalDefines
 /**
 附加点: 
 hand 手
@@ -72,7 +72,7 @@ class EditorHelper
             ..setManaRegeneration(9999.)
             ..setManaInitialAmount(9999)
             ..setHitPointsMaximumBase(9999)
-            ..setNormalAbilities("Aloc")
+            ..setNormalAbilities("")
             ..setShadowImageUnit("")
             ..setShadowTextureBuilding("")
             ..setHasWaterShadow(false)
@@ -83,10 +83,9 @@ class EditorHelper
             ..setName(id.toRawCode())
         destroy u_editor
 
-    static function create_effect_faker_unit(int id, real size, string effect_path, color cl)
+    static function create_effect_faker_unit(int id, real size, string effect_path, color cl) returns UnitOrBuildingOrHeroDefinition
         var u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
         u_editor..setScalingValue(size)
-            ..setModelFile(effect_path)
             ..setSpeedBase(0)
             ..setHitPointsMaximumBase(9999)
             ..setNormalAbilities("Aloc")
@@ -101,8 +100,11 @@ class EditorHelper
             ..setShadowImageHeight(0.)
             ..setShadowImageWidth(0.)
             ..setName(id.toRawCode())
+            ..setAnimationCastPoint(0.)
+            ..setAnimationCastBackswing(0.)
             ..setFoodCost(0)
-        destroy u_editor
+            ..setModelFile(effect_path)
+        return u_editor
 
     
     static function create_channel_template(int id, emSkillKey k) returns AbilityDefinitionIllidanChannel
@@ -123,6 +125,23 @@ class EditorHelper
             ..setBaseOrderID(1, base_order)
             ..setOrderStringUseTurnOn(base_order)
             ..setDisableOtherAbilities(1,false)
+
+        return s_editor
+
+    static function create_cripple_template(int id, real duration, int buf) returns AbilityDefinitionCripplecreep
+        var s_editor = new AbilityDefinitionCripplecreep(id)
+        s_editor..setDamageReduction(1, 0.)
+            ..setAttackSpeedReduction(1, 0.)
+            ..setMovementSpeedReduction(1, 0.)
+            ..setDurationHero(1, duration)
+            ..setDurationNormal(1, duration)
+            ..setBuffs(1, buf.toRawCode())
+            ..setCastRange(1, 99999)
+            ..setManaCost(1, 0)
+            ..setCooldown(1, 0)
+            ..setTargetsAllowed(1, TYPE_ALLOWED_ALL)
+
+
 
         return s_editor
 

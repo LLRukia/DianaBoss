@@ -2,24 +2,28 @@ package EffectHelper
 import EditorHelper
 
 class EffectHelper
-    
+    static private unit buff_adder
     /** Effect Scaling DIY 
         @attention  if ur effect don't need to change its size, use flashEffect instead.
         @attention  some effect cannot DIY scaling, like Particle Effects.(Thank CloudFox)
     */
     @compiletime
     static function init_effect()
-        if compiletime
-            EditorHelper.create_effect_faker_unit('5rbk', 0.5, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", color(255,0,0))
-            EditorHelper.create_effect_faker_unit('0rbk', 1.0, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", color(255,0,0))
+        EditorHelper.create_effect_faker_unit('0rbk', 1.0, "iceflower.mdx", color(255,255,255))
+        EditorHelper.create_effect_faker_unit('1rbk', 1.0, "icenova.mdx", color(255,0,0))
+        EditorHelper.create_effect_faker_unit('2rbk', 1.0, "firestomp.mdx", color(255,0,0))
+        EditorHelper.create_effect_faker_unit('3rbk', 1.0, "imr.mdx", color(255,255,255))
+        EditorHelper.create_effect_faker_unit('4rbk', 1.0, "[ake]war3ake.com - 7564702339952332465658051.mdx", color(255,255,255))
+        
+
 
     /** Effect Scaling DIY 
         @attention  if ur effect don't need to change its size, use flashEffect instead.
     */
-    static function flash_effect(int effect_id, vec2 target)
-        createUnit(Player(8), effect_id, target, angle(0))..setTimedLife(1.5)
+    static function flash_effect(int effect_id, vec2 target, real ang)
+        createUnit(Player(8), effect_id, target, angle(ang))
+            ..setTimedLife(1.5)
+            ..setPos(target)
             
-        
             
 init
-    EffectHelper.init_effect()

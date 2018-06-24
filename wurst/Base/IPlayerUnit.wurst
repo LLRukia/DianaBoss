@@ -1,10 +1,8 @@
 package IPlayerUnit
 import NoWurst
 import public Buffs
-
-public enum career
-    ice_mage
-    fire_mage
+import public BaseSkills
+import ExternalDefines
 
 public abstract class IPlayerUnit
     protected unit m_self_unit
@@ -19,7 +17,7 @@ public abstract class IPlayerUnit
 
     abstract function init_self()
 
-    abstract function add_buff(int id, BuffClearType cltp, BuffType tp)
+    abstract function add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills obj)
 
     abstract function remove_buff(BuffClearType cltp, BuffType tp)
 

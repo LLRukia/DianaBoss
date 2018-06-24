@@ -3,7 +3,6 @@ import ExternalDefines
 import public initlater IPlayerUnit
 import PlayerHelper
 import HashMap
-import BaseSkills
 
 public class PlayerUnit extends IPlayerUnit
     protected var m_mapSkill = new IterableMap<int, IBaseSkills>
@@ -20,8 +19,8 @@ public class PlayerUnit extends IPlayerUnit
     override function init_self()
         skip
 
-    override function add_buff(int id, BuffClearType cltp, BuffType tp)
-        m_buffs.add_buff(id, cltp, tp)
+    override function add_buff(int id, BuffClearType cltp, BuffType tp, IBaseSkills obj)
+        m_buffs.add_buff(id, cltp, tp, obj)
 
     override function remove_buff(BuffClearType cltp, BuffType tp)
         m_buffs.remove_buff(cltp, tp)
