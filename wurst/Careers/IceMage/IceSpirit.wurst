@@ -42,6 +42,7 @@ public class IceSpirit extends IceMageSkill
 
 
 
+
     override function listen()
         m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
             ..addCondition(Filter(()->GetSpellAbilityId()==IceSpirit.self_ids[0] or GetSpellAbilityId()==IceSpirit.self_ids[1]
@@ -94,6 +95,7 @@ public class IceSpirit extends IceMageSkill
     static function enter()
         var obj = GetTriggeringTrigger().getData() castTo IceSpirit
         unit u = GetEnteringUnit()
+
         if (PlayerUnitHelper.get_instance(u) == -1
             and not u.isBoss()) or not u.can_add_buff()
             return
@@ -133,6 +135,7 @@ public class IceSpirit extends IceMageSkill
         unit u = map_buff_unit.get(t.getData())
         u.remove_buff(IceSpirit.buff_up_id)
         t..pause()..destr()
+
 
     static function recovery_judge() returns boolean
         var obj = GetTriggeringTrigger().getData() castTo IceSpirit

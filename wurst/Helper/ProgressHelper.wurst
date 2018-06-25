@@ -13,6 +13,7 @@ public class ProgressBar
     construct(unit u, real fMax)
         m_u = u
         m_max = fMax
+
         m_tx = createTTEx(u.getPos3with(50), Color_Define.COLOR_ICEMAGE + fMax.toString(0), 8)
         m_tmPos = CreateTimer()
         m_tmPos..setData(this castTo int)
@@ -25,9 +26,12 @@ public class ProgressBar
 
     function set_cur_value(real fCur)
         m_cur = fCur
+
         m_tx.setText(Color_Define.COLOR_ICEMAGE + m_cur.toString(0), 8)
+
 
 
     static function update_pos()
         var dt = (GetExpiredTimer().getData()) castTo ProgressBar
         dt.m_tx.setPos(dt.m_u.getPos3with(50))
+

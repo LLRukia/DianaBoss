@@ -118,6 +118,7 @@ public class IceBarrier extends IceMageSkill
         if fDmg <= 0
             return
         
+
         real fFinalDmg = fDmg > dt.m_fShieldHP ? fDmg-dt.m_fShieldHP : 0
         BlzSetEventDamage(fFinalDmg)
         dt.m_fShieldHP -= fDmg
