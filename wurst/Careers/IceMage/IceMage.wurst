@@ -13,6 +13,7 @@ public class IceMage extends PlayerUnit
 		m_self_career = ice_mage
 		init_self()
 		listen_all()
+		u.hideAbility('imbk', true)
 
 	override function init_self() 
 		m_mapSkill.put(IceBarrier.self_id, new IceBarrier(m_self_unit))
@@ -101,12 +102,5 @@ function create_im_id()
 
 @compiletime
 function create_im_mgcbook()
-	if compiletime
-		var editor = EditorHelper.create_magic_book('imbk', "imau")
-		editor..setName("imbk")
-	else
-		for i = 0 to 7
-			Player(i).setAbilityAvailable('imbk', false)
-
-init
-	create_im_mgcbook()
+	var editor = EditorHelper.create_magic_book('imbk', "imau")
+	editor..setName("imbk")

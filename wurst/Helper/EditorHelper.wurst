@@ -5,7 +5,7 @@ import public AbilityObjEditing
 import public ObjectIds
 import public Colors
 import ExternalDefines
-/**
+/*
 附加点: 
 hand 手
 foot 脚
@@ -24,7 +24,7 @@ sprite 只有血法和建筑物有该附加点
 first second third fourth fifth sixth 修饰sprite的后缀
 */
 
-
+/** None:无目标 Unit:单位 Ground:地面*/
 public enum emTargetType
     None
     Unit
@@ -62,7 +62,7 @@ class EditorHelper
             ..setName(id.toRawCode())
         destroy s_editor
 
-    static function create_caster_faker_unit(int id, real size)
+    static function create_caster_faker_unit(int id, real size) returns UnitOrBuildingOrHeroDefinition
         var u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')
         u_editor..setScalingValue(size)
             ..setSpeedBase(0)
@@ -72,7 +72,7 @@ class EditorHelper
             ..setManaRegeneration(9999.)
             ..setManaInitialAmount(9999)
             ..setHitPointsMaximumBase(9999)
-            ..setNormalAbilities("")
+            ..setNormalAbilities("Aloc")
             ..setShadowImageUnit("")
             ..setShadowTextureBuilding("")
             ..setHasWaterShadow(false)
@@ -81,7 +81,8 @@ class EditorHelper
             ..setShadowImageHeight(0.)
             ..setShadowImageWidth(0.)
             ..setName(id.toRawCode())
-        destroy u_editor
+            ..setModelFile(".mdl")
+        return u_editor
 
     static function create_effect_faker_unit(int id, real size, string effect_path, color cl) returns UnitOrBuildingOrHeroDefinition
         var u_editor = new UnitOrBuildingOrHeroDefinition(id, 'hpea')

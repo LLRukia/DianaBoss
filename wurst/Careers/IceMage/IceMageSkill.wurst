@@ -25,3 +25,5 @@ public class IceMageSkill extends IBaseSkills
 	override function listen()
 
 	override function destroy_buff(unit _u)
+
+	override function clear()

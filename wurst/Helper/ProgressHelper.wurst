@@ -1,0 +1,40 @@
+package ProgressHelper
+
+import ExternalDefines
+import TimerUtils
+
+public class ProgressBar
+    private real m_max = 0.
+    private real m_cur = 0.
+    private texttag m_tx
+    private timer m_tmPos
+    private unit m_u
+
+    construct(unit u, real fMax)
+        m_u = u
+        m_max = fMax
+        m_tx = createTTEx(u.getPos3Zero(), Color_Define.COLOR_ICEMAGE + "IIII|IIII|IIII|IIII|", 8)
+        m_tmPos = CreateTimer()
+        m_tmPos..setData(this castTo int)
+            ..startPeriodic(0.03, function update_pos)
+
+
+    ondestroy
+        m_tmPos..pause()..destr()
+        m_tx..destr()
+
+    function set_cur_value(real fCur)
+        m_cur = fCur
+        int num = (m_cur / m_max).toInt() * 20
+        string tx = Color_Define.COLOR_ICEMAGE
+        for i = 1 to num
+            if i mod 5 == 0
+                tx += "|"
+            else
+                tx += "I"
+        m_tx.setText(tx, 8)
+
+
+    static function update_pos()
+        var dt = (GetExpiredTimer().getData()) castTo ProgressBar
+        dt.m_tx.setPos(dt.m_u.getPos3Zero())

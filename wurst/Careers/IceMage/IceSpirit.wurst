@@ -1,0 +1,194 @@
+package IceSpirit
+
+import EditorHelper
+import IceMage
+import ExternalDefines
+import LinkedList
+import BossHelper
+import TriggerHelper
+import BuffObjEditing
+
+public class IceSpirit extends IceMageSkill
+    static let dmg = 240.
+    static let radius = 350.
+    static let self_id = 'im0f'
+    static let self_ids = ['im0f', 'im1f', 'im2f', 'im3f']
+    static let buff_up_id = 'im1b'
+    static let buff_down_id = 'im2b'
+    static let skill_up_id = 'imf1'
+    static let skill_down_id = 'imf2'
+    static let recovery = vec2(200., 30.)
+    static let caster_faker = 'imfu'
+    static let buff_up_down = vec2(0.37, 0.24)
+    private var m_ls_spirit = new LinkedList<unit>
+    private region m_rg_judge = CreateRegion()
+    private trigger m_tr_judge = CreateTrigger()
+    private trigger m_tr_kill_recovery = CreateTrigger()
+    private int m_exist_spirit_num = 0
+    private int m_spirit_num = 0
+    construct(unit u)
+        super(u)
+    
+    override function clear()
+        m_self_unit.removeAbility(IceSpirit.self_ids[m_spirit_num])
+        m_spirit_num = 0
+        m_exist_spirit_num = 0
+        m_self_unit.addAbility(IceSpirit.self_ids[m_spirit_num])
+        for i in m_ls_spirit
+            m_rg_judge.clearCell(i.getPos())
+            RemoveUnit(i)
+        m_ls_spirit.clear()
+
+
+
+    override function listen()
+        m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
+            ..addCondition(Filter(()->GetSpellAbilityId()==IceSpirit.self_id))
+            ..addAction(function skill_act_forwarding)
+        m_tr_kill_recovery..registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+            ..addCondition(Filter(function recovery_judge))
+            ..addAction(function recovery)
+            ..setData(this castTo int)
+        m_tr_judge..registerEnterRegion(m_rg_judge, Filter(function IceSpirit.enter_judge))
+            ..addAction(function IceSpirit.enter)
+            ..setData(this castTo int)
+        
+    override function cast()
+        if m_spirit_num == 0
+            printTimedToPlayer(Color_Define.COLOR_ICEMAGE + "Ice Spirit数量不足。", 2., m_self_unit.getOwner())
+            return
+        if m_exist_spirit_num == 3
+            printTimedToPlayer(Color_Define.COLOR_ICEMAGE + "场上的Ice Spirit数量已经达到最大值。", 2., m_self_unit.getOwner())
+            return
+        m_self_unit.removeAbility(IceSpirit.self_ids[m_spirit_num])
+        m_spirit_num--
+        m_self_unit.addAbility(IceSpirit.self_ids[m_spirit_num])
+        m_exist_spirit_num++
+        vec2 pos = vec2(GetSpellTargetX(), GetSpellTargetY())
+        m_ls_spirit.add(createUnit(m_self_unit.getOwner(), 'im1f', pos, angle(270.)))
+        m_rg_judge.addCell(pos)
+
+    static function enter_judge() returns boolean
+        unit u = GetEnteringUnit()
+        return (PlayerUnitHelper.get_instance(u) != -1
+            or u.isBoss()) and (not u.isInvulnerable())
+
+    static function enter()
+        var obj = GetTriggeringTrigger().getData() castTo IceSpirit
+        unit u = GetEnteringUnit()
+        for i in obj.m_ls_spirit
+            vec2 pos = i.getPos()
+            if pos.inRange(u.getPos(), 17)
+                obj.m_ls_spirit.remove(i)
+                obj.m_rg_judge.clearCell(pos)
+                RemoveUnit(i)
+                obj.m_exist_spirit_num--
+                flashEffect("Abilities\\Spells\\Items\\AIam\\AIamTarget.mdl", pos)
+                break
+        unit uFaker = createUnit(obj.m_self_unit.getOwner(), IceSpirit.caster_faker, u.getPos()+vec2(-100,0), angle(0))
+        uFaker.setTimedLife(1)
+        if u.isBoss()
+            uFaker.issueTargetOrder("cripple", u)
+        else
+            uFaker.issueTargetOrder("bloodlust", u)
+        
+
+    static function recovery_judge() returns boolean
+        var obj = GetTriggeringTrigger().getData() castTo IceSpirit
+        return GetKillingUnit() == obj.m_self_unit
+
+    static function recovery()
+        var obj = GetTriggeringTrigger().getData() castTo IceSpirit
+        obj.m_self_unit..setHP(obj.m_self_unit.getHP() + IceSpirit.recovery.x)
+                ..setMana(obj.m_self_unit.getMana() + IceSpirit.recovery.y)
+        if obj.m_spirit_num < 3
+            obj.m_self_unit.removeAbility(IceSpirit.self_ids[obj.m_spirit_num])
+            obj.m_spirit_num++
+            obj.m_self_unit.addAbility(IceSpirit.self_ids[obj.m_spirit_num])
+
+@compiletime
+function create_ice_spirit()
+    let icon = ["icespirit0.blp", "icespirit1.blp", "icespirit2.blp", "icespirit3.blp"]
+    for i = 0 to 3
+        var editor = EditorHelper.create_channel_template(IceSpirit.self_ids[i], emSkillKey.F)
+        editor..setCastRange(1, 900)
+            ..setManaCost(1, 0)
+            ..setCooldown(1, 2)
+            ..setButtonPositionNormalX(2)
+            ..setButtonPositionNormalY(1)
+            ..setHotkeyNormal("F")
+            ..setTargetType(1, emTargetType.Ground castTo int)
+            ..setName("IceSpirit")
+            ..setTooltipNormal(1,
+                Color_Define.COLOR_ICEMAGE + "Ice Spirit[Chill Version]" +
+                Color_Define.COLOR_HOT_KEY + "(F)")
+            ..setTooltipNormalExtended(1,
+                Color_Define.COLOR_NORMAL + "被动效果：当你杀死单位时，为你回复200生命和30魔法，并增加一点Spirit，最大3点。|n主动效果：消耗一个储存的Spirit，在指定地点放置一个寒冰之灵，当友方玩家踩到时，为其增加37%移动速度，持续7秒；当Boss踩到时，为其减少24%移动速度，持续5秒。" +
+                Color_Define.COLOR_LAST_TIME + "寒冰之灵在场上最多存在3个，持续60秒。|n" +
+                Color_Define. COLOR_CAST_RANGE + "施法距离：900" +
+                Color_Define.COLOR_COOL_DOWN + "CD:2s")
+            ..setIconNormal(icon[i])
+
+        destroy editor
+
+@compiletime
+function create_ice_spirit_unit()
+    var ed = EditorHelper.create_effect_faker_unit('im1f', 2., "Abilities\\Weapons\\PriestMissile\\PriestMissile.mdl", color(255,255,255))
+    destroy ed
+
+@compiletime
+function create_ice_spirit_faker_caster()
+    var ed = EditorHelper.create_caster_faker_unit(IceSpirit.caster_faker, 1)
+    ed..setNormalAbilities("Aloc,"+IceSpirit.skill_up_id.toRawCode() + "," +IceSpirit.skill_down_id.toRawCode())
+
+@compiletime
+function create_faker_skills()
+    var ed1 = new AbilityDefinitionCripple(IceSpirit.skill_down_id)
+    ed1..setDamageReduction(1, 0.)
+        ..setAttackSpeedReduction(1, 0.)
+        ..setMovementSpeedReduction(1, IceSpirit.buff_up_down.y)
+        ..setDurationHero(1, 5)
+        ..setDurationNormal(1, 5)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setTargetsAllowed(1, "enemies,ground,air,organic")
+        ..setBuffs(1, IceSpirit.buff_down_id.toRawCode())
+        ..setName("Spirit Boss")
+
+    var ed2 = new AbilityDefinitionBloodlust(IceSpirit.skill_up_id)
+    ed2..setScalingFactor(1, 0.)
+        ..setAttackSpeedIncrease(1, 0.)
+        ..setMovementSpeedIncrease(1, IceSpirit.buff_up_down.x)
+        ..setDurationHero(1, 7)
+        ..setDurationNormal(1, 7)
+        ..setManaCost(1, 0)
+        ..setCastRange(1, 99999)
+        ..setCooldown(1, 0)
+        ..setLevels(1)
+        ..setRequirements("")
+        ..setRequirementsLevels("")
+        ..setBuffs(1, IceSpirit.buff_up_id.toRawCode())
+        ..setName("Spirit Player")
+
+@compiletime
+function create_speed_up_buff()
+    var editor = new BuffDefinition(IceSpirit.buff_up_id, 'Bdet')
+    editor..setName(1, "Ice Spirit")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Spirit")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位吸收了寒冰之灵，移动速度加快了。")
+        ..setArtTarget(1, "Abilities\\Spells\\Items\\AIsp\\SpeedTarget.mdl")
+        ..setTargetAttachmentPoint0(1, "overhead")
+        ..setIconNormal(1, "icespirit0.blp")
+
+@compiletime
+function create_speed_down_buff()
+    var editor = new BuffDefinition(IceSpirit.buff_down_id, 'Bdet')
+    editor..setName(1, "Ice Spirit")
+        ..setTooltipNormal(1, Color_Define.COLOR_ICEMAGE + "Ice Spirit")
+        ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位吸收了寒冰之灵，移动速度减慢了。")
+        ..setArtTarget(1, "Abilities\\Spells\\Human\\slow\\slowtarget.mdl")
+        ..setIconNormal(1, "icespirit0.blp")

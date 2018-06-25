@@ -15,3 +15,5 @@ public abstract class IBaseSkills
     abstract function listen()
 
     abstract function destroy_buff(unit _u)
+
+    abstract function clear()

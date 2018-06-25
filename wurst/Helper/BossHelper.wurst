@@ -1,0 +1,14 @@
+package BossHelper
+
+
+
+public function unit.isBoss() returns boolean
+    return BossHelper.isBoss(this)
+    
+
+public class BossHelper
+    static private unit cur_boss = null
+    static function create_boss(int index)
+
+    static function isBoss(unit u) returns boolean
+        return cur_boss == u
