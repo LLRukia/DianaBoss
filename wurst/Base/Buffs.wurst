@@ -98,3 +98,15 @@ public function unit.remove_buff(BuffClearType cltp, BuffType tp)
                 print("unit.remove_buff(multi) error")
             return
         obj.remove_buff(cltp, tp)
+
+public function unit.can_add_buff() returns boolean
+    var hdl = PlayerUnitHelper.get_instance(this)
+    if hdl == -1
+        return true
+    else
+        var obj = hdl castTo PlayerUnit
+        if obj == null
+            if _DEBUG
+                print("unit.remove_buff(multi) error")
+            return false
+        return obj.can_add_buff()

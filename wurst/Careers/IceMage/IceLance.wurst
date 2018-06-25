@@ -125,7 +125,8 @@ function create_ice_lance()
             Color_Define.COLOR_HOT_KEY + "(E)")
 		..setTooltipNormalExtended(1,
             Color_Define.COLOR_NORMAL + "依次选择两个点，从第一个点向第二个点释放IceLance，对命中单位造成300伤害。|n" +
-            Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+			Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+			Color_Define. COLOR_CAST_RANGE + "施法距离：900, 1100" +
             Color_Define.COLOR_COOL_DOWN + "CD:6s")
 		..setIconNormal("Ice Lance.blp")
 		..setArtEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
@@ -148,7 +149,8 @@ function create_ice_lance_help()
             Color_Define.COLOR_HOT_KEY + "(E)")
 		..setTooltipNormalExtended(1,
             Color_Define.COLOR_NORMAL + "依次选择两个点，从第一个点向第二个点释放IceLance，对命中单位造成300伤害。|n" +
-            Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+			Color_Define.COLOR_LAST_TIME + "冰块持续10秒。|n" +
+			Color_Define. COLOR_CAST_RANGE + "施法距离：900, 1100|n" +
             Color_Define.COLOR_COOL_DOWN + "CD:6s")
 		..setIconNormal("ReplaceableTextures\\CommandButtons\\BTNAttackGround.blp")
 		..setArtEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")

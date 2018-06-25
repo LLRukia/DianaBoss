@@ -4,7 +4,6 @@ import Buffs
 import EffectHelper
 import UnitObjEditing
 import ExternalDefines
-import Colors
 
 function test()
     print("test")
@@ -37,10 +36,10 @@ function displaydamage()
     
     real speed = 64 * 0.071 / 128
     real angle = GetRandomReal(15., 165.)
-    var cl = PLAYER_COLORS[p.getId()].withAlpha(255)
-    createTTEx(u.getPos3with(30), GetEventDamage().toString(), 9, cl)
+    createTTEx(u.getPos3with(30), GetEventDamage().toString(), 9, p.getColor().toColor().withAlpha(255))
+        ..setPermanent(false)
         ..setFadepoint(2.)
-        ..setLifespan(4.)
+        ..setLifespan(3.)
         ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
     
 

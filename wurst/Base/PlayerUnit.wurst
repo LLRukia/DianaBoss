@@ -11,6 +11,9 @@ public class PlayerUnit extends IPlayerUnit
         for s in m_mapSkill
             m_mapSkill.get(s).listen()
 
+    override function can_add_buff() returns boolean
+        return m_is_invulnerable
+    
     override function init_all()
 
     override function spell(int nSkillId)

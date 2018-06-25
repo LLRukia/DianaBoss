@@ -13,19 +13,23 @@ public class IceMage extends PlayerUnit
 		m_self_career = ice_mage
 		init_self()
 		listen_all()
+		u.hideAbility('imbk', true)
 
 	override function init_self() 
 		m_mapSkill.put(IceBarrier.self_id, new IceBarrier(m_self_unit))
 		m_mapSkill.put(IceLance.self_id, new IceLance(m_self_unit))
 		m_mapSkill.put(ConeofCold.self_id, new ConeofCold(m_self_unit))
 		m_mapSkill.put(ForstBolt.self_id, new ForstBolt(m_self_unit))
+		m_mapSkill.put(IceSpirit.self_id, new IceSpirit(m_self_unit))
+
 
 @compiletime
 function create_ice_mage()
 	var editor = new HeroDefinition(ICE_MAGE, 'Hjai')
 	string im_skill_list = ForstBolt.self_id.toRawCode() + "," + ConeofCold.self_id.toRawCode() + "," +
 		IceLance.self_id.toRawCode() + "," + IceBarrier.self_id.toRawCode() + "," +
-		"imbk," + "AInv"
+		IceSpirit.self_id.toRawCode() +
+		",imbk,AInv"
 	editor..setNormalAbilities(im_skill_list)
 		..setHeroAbilities("")
 		..setDefaultActiveAbility("")
@@ -101,12 +105,5 @@ function create_im_id()
 
 @compiletime
 function create_im_mgcbook()
-	if compiletime
-		var editor = EditorHelper.create_magic_book('imbk', "imau")
-		editor..setName("imbk")
-	else
-		for i = 0 to 7
-			Player(i).setAbilityAvailable('imbk', false)
-
-init
-	create_im_mgcbook()
+	var editor = EditorHelper.create_magic_book('imbk', "imau")
+	editor..setName("imbk")

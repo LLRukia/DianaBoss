@@ -15,6 +15,7 @@ public class ConeofCold extends IceMageSkill
 	static constant int self_id = 'im0w'
 	static constant real max_dis = 900
 	static constant real dmg = 240.
+	static let radius = 350.
 	override function listen()
 		m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
 		..addCondition(Filter(()->GetSpellAbilityId()==ConeofCold.self_id))

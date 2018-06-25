@@ -6,33 +6,30 @@ import HashMap
 import TriggerHelper
 import EditorHelper
 import BuffObjEditing
+import ProgressHelper
 
 class Data
     construct (unit uTarget)
         m_u = uTarget
-        m_tPosUpdate = CreateTimer()
         m_tDestroy = CreateTimer()
         m_fShieldHP = IceBarrier.shield_hp
         m_trDmg = CreateTrigger()
         m_trDeath = CreateTrigger()
-        m_fRecovery = 0.0
-        m_tx = createTTEx(m_u.getPos3Zero(), m_fShieldHP.toString(), 9)
+        m_tx = new ProgressBar(m_u, m_fShieldHP)
+        m_tx.set_cur_value(m_fShieldHP)
     
     ondestroy
         m_u.remove_buff(IceBarrier.buff_id)
-        m_tPosUpdate..pause()..destr()
         m_tDestroy..pause()..destr()
-        m_tx.destr()
+        destroy m_tx
         m_trDmg..disable()..destr()
         m_trDeath..disable()..destr()
     
     unit m_u
-    timer m_tPosUpdate
     timer m_tDestroy
-    texttag m_tx
+    ProgressBar m_tx
     real m_fShieldHP
     trigger m_trDmg
-    real m_fRecovery
     trigger m_trDeath
 
 
@@ -41,10 +38,17 @@ public class IceBarrier extends IceMageSkill
     static constant real shield_hp = 750.0
     static constant int buff_id = 'im0b'
     static constant real last_time = 45
-    static private var data_manager = new HashMap<unit, Data>
+    static private var data_manager = new IterableMap<unit, Data>
     construct(unit u)
         super(u)
-        
+    
+    override function clear()
+        for i in data_manager
+            var dt = data_manager.get(i)
+            if dt != null
+                if not dt.m_u.remove_buff(buff_id)
+                    destroy dt
+                    data_manager.remove(dt.m_u)
    
     override function listen()
         m_tr_self..registerUnitEvent(m_self_unit, EVENT_UNIT_SPELL_EFFECT)
@@ -59,8 +63,10 @@ public class IceBarrier extends IceMageSkill
             start(u)
 
     override function destroy_buff(unit u)
-        destroy data_manager.get(u)
-        data_manager.remove(u)
+        var tmp = data_manager.get(u)
+        if tmp != null
+            destroy tmp
+            data_manager.remove(u)
         
 
     function start(unit u)
@@ -71,8 +77,6 @@ public class IceBarrier extends IceMageSkill
                 print("IceBarrier::COVER CHECK ERROR")
             return
         dt.m_u.add_buff(IceBarrier.buff_id, BuffClearType.stable, BuffType.buffs, this)
-        dt.m_tPosUpdate..setData(dt castTo int)
-            ..startPeriodic(0.03, function IceBarrier.pos_update)
 
         dt.m_tDestroy..setData(dt castTo int)
             ..startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
@@ -80,12 +84,10 @@ public class IceBarrier extends IceMageSkill
         dt.m_trDmg..registerUnitEvent(dt.m_u, EVENT_UNIT_DAMAGED)
             ..addAction(function IceBarrier.protect_act)
             ..setData(dt castTo int)
-            ..enable()
         
         dt.m_trDeath..registerUnitEvent(dt.m_u, EVENT_UNIT_DEATH)
             ..addAction(function IceBarrier.unit_death)
             ..setData(dt castTo int)
-            ..enable()
 
     function refresh(unit u)
         if not data_manager.has(u)
@@ -98,11 +100,16 @@ public class IceBarrier extends IceMageSkill
         if dt.m_tDestroy != null
             dt.m_tDestroy.pause()
             dt.m_fShieldHP = IceBarrier.shield_hp
-            dt.m_tx.setText(dt.m_fShieldHP.toString(), 9)
+            dt.m_tx.set_cur_value(dt.m_fShieldHP)
             dt.m_tDestroy.startPeriodic(IceBarrier.last_time, function IceBarrier.destr)
         
     static function unit_death()
-        IceBarrier.destr()
+        Data dt = GetTriggeringTrigger().getData() castTo Data
+        if dt != null
+            print("11")
+            if not dt.m_u.remove_buff(buff_id)
+                destroy dt
+                data_manager.remove(dt.m_u)
 
     static function protect_act()
         Data dt = GetTriggeringTrigger().getData() castTo Data
@@ -111,42 +118,24 @@ public class IceBarrier extends IceMageSkill
         if fDmg <= 0
             return
         
-        real fCurHp = dt.m_u.getHP()
-        real fMaxHp = dt.m_u.getMaxHP()
-        if fMaxHp <= fDmg
-            return
-        real fDeltaHp = fMaxHp - fCurHp
-        dt.m_u.setHP(fMaxHp)
-
-        dt.m_fRecovery = fDmg > dt.m_fShieldHP ? dt.m_fShieldHP : fDmg
+        real fFinalDmg = fDmg > dt.m_fShieldHP ? fDmg-dt.m_fShieldHP : 0
+        BlzSetEventDamage(fFinalDmg)
         dt.m_fShieldHP -= fDmg
-        dt.m_fRecovery -= fDeltaHp
 
-        if dt.m_fShieldHP < 0
-            dt.m_tDestroy.startPeriodic(0.0, function IceBarrier.destr)
+        if dt.m_fShieldHP <= 0
+            if dt != null
+                if not dt.m_u.remove_buff(buff_id)
+                    destroy dt
+                    data_manager.remove(dt.m_u)
         else
-            dt.m_tx.setText(dt.m_fShieldHP.toString(), 9)
-
-        CreateTimer()..setData(dt castTo int)
-            ..startPeriodic(0, function IceBarrier.delay_recover)
-
-    static function delay_recover()
-        timer t = GetExpiredTimer()
-        Data dt = (t.getData()) castTo Data
-
-        dt.m_u.setHP(dt.m_u.getHP() + dt.m_fRecovery)
-        t.pause()
-        t.destr()
-
-    static function pos_update()
-        Data dt = (GetExpiredTimer().getData()) castTo Data
-        dt.m_tx.setPos(dt.m_u.getPos3Zero())
+            dt.m_tx.set_cur_value(dt.m_fShieldHP)
     
     static function destr()
         Data dt = GetExpiredTimer().getData() castTo Data
-        if not dt.m_u.remove_buff(buff_id)
-            destroy data_manager.get(dt.m_u)
-            data_manager.remove(dt.m_u)
+        if dt != null
+            if not dt.m_u.remove_buff(buff_id)
+                destroy dt
+                data_manager.remove(dt.m_u)
 
 @compiletime
 function create_ice_barrier()
@@ -167,6 +156,7 @@ function create_ice_barrier()
         ..setTooltipNormalExtended(1,
             Color_Define.COLOR_NORMAL + "给目标施加寒冰屏障，可以为目标吸收最大750点伤害。|n" +
             Color_Define.COLOR_LAST_TIME + "持续45秒。|n" +
+            Color_Define. COLOR_CAST_RANGE + "施法距离：1100|n" +
             Color_Define.COLOR_COOL_DOWN + "CD:5s")
         ..setIconNormal("Ice Barrier.blp")
         ..setBuffs(1, IceBarrier.buff_id.toRawCode())

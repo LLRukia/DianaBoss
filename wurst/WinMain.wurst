@@ -3,7 +3,7 @@ import ExternalDefines
 import Camera
 
 init
-    
+    FogMaskEnableOn()
     for i = 0 to 7
         Player(i)..panCameraToTimed(PICK_RECT.getCenter(),0)
             ..setCameraBoundsToRect(PICK_RECT)

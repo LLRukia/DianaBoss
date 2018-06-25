@@ -38,6 +38,7 @@ function create_frost_bolt()
 		..setTooltipNormalExtended(1,
 			Color_Define.COLOR_NORMAL + "向目标射出一枚寒冰箭，造成220伤害。|n" +
 			Color_Define.COLOR_MANA_DECREASE + "减少目标4点能量。|n" +
+			Color_Define. COLOR_CAST_RANGE + "施法距离：1300|n" +
 			Color_Define.COLOR_COOL_DOWN + "CD:1.8s")
 		..setIconNormal("frostbolt.blp")
 		..setArtTarget("Abilities\\Spells\\Items\\SpellShieldAmulet\\SpellShieldCaster.mdl")

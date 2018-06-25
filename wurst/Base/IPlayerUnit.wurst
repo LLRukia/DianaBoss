@@ -8,6 +8,7 @@ public abstract class IPlayerUnit
     protected unit m_self_unit
     protected player m_control_player
     protected career m_self_career
+    protected boolean m_is_invulnerable = true
 
     abstract function spell(int nSkillId)
 
@@ -22,3 +23,5 @@ public abstract class IPlayerUnit
     abstract function remove_buff(BuffClearType cltp, BuffType tp)
 
     abstract function remove_buff(int id)
+
+    abstract function can_add_buff() returns boolean
