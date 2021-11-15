@@ -16,7 +16,7 @@ public class Revive extends PriestSkill
     static let cool_down = 20.
     static let mana_cost = 50
     static let effect_revive_target_path = "Abilities\\Spells\\Human\\Resurrect\\ResurrectTarget.mdl"
-    static let desc = Color_Define.COLOR_NORMAL + "→吟唱{0}秒后，复活目标。|n".format(channel_time.toString()) +
+    static let desc = Color_Define.COLOR_NORMAL + "→吟唱{0}秒后，复活目标。|n".format(channel_time.toString(1)) +
         Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(1)) +
         Color_Define.COLOR_WARNING + "▼技能被打断也会进入CD|n▲复活后目标的生命值与你的当前生命值百分比一致，且不超过50%|n" +
         Color_Define.COLOR_COOL_DOWN + "→CD:20s"

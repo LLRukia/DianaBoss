@@ -26,7 +26,7 @@ public class FrostBolt extends IceMageSkill
     static let dmg_type = ATTACK_TYPE_MAGIC
     static let desc = Color_Define.COLOR_NORMAL + "↓向目标射出{0}枚寒冰箭，造成{1}伤害。|n".format(num.toString(), dmg.toString(1)) +
         "↓减少目标{0}%/{0}%的速度。|n".format((attack_speed_dec*100).toString(0), (move_speed_dec*100).toString(0)) +
-        Color_Define.COLOR_MANA_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
+        Color_Define.COLOR_ENERGY_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
         Color_Define.COLOR_ICEMAGE + "↑ {0}%法术强度额外伤害|n".format((inc*100).toString(0)) +
         Color_Define.COLOR_LAST_TIME + "→持续{0}秒|n".format(last_time.toString(1)) +
         Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
@@ -42,10 +42,10 @@ public class FrostBolt extends IceMageSkill
             ..addAction(function FrostBolt.cast)
     
     static function launch_missile(unit caster, unit target)
-        SkillHelper.auto_trace_missile(
+        new AutoTrace(
             effect_id, target, caster,
             (caster.getPos()+POS_CORRECTION).angleTo(target.getPos()).asAngleDegrees(),
-            new FrostBoltCb(caster, target), 0
+            new FrostBoltFunctions(caster, target)
         )
         launch.playOnPoint(caster.getPos3Real())
 
@@ -57,13 +57,13 @@ public class FrostBolt extends IceMageSkill
         if image_unit != null
             launch_missile(image_unit, target)
 
-    static class FrostBoltCb implements SkillHelperCb
+    static class FrostBoltFunctions implements AutoTraceFunctions
         unit caster_
         unit target_
         construct(unit caster, unit target)
             this.caster_ = caster
             this.target_ = target
-        override function cb(int _)
+        override function on_hit()
             let final_dmg = GetHeroAgi(caster_, true) * FrostBolt.inc + FrostBolt.dmg
             caster_.damageTarget(target_, final_dmg, FrostBolt.dmg_type)
             target_.setMana(target_.getMana() - FrostBolt.energy_dec)

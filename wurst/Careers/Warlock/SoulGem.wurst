@@ -12,6 +12,10 @@ public class SoulGem extends WarlockSkill
     static let help_id = 'wl1g'
     static let cool_down = 60.
     static let time_out = 8.
+    static let desc = Color_Define.COLOR_NORMAL + "→选择一名友方英雄使用，储存其灵魂。持续时间内若其死亡，则可以使用此技能复活ta。|n"+
+        Color_Define.COLOR_LAST_TIME + "→持续8秒|n" +
+        Color_Define.COLOR_CAST_RANGE + "→施法距离：700|n" +
+        Color_Define.COLOR_COOL_DOWN + "→CD:60s"
 
     private trigger m_tr_help = CreateTrigger()
     private trigger m_tr_target_judge = CreateTrigger()
@@ -105,11 +109,7 @@ function create_soul_gem()
         ..setTooltipNormal(1,
             Color_Define.COLOR_WARLOCK + "Soul Gem" +
             Color_Define.COLOR_HOT_KEY + "(G)")
-        ..setTooltipNormalExtended(1,
-            Color_Define.COLOR_NORMAL + "→选择一名友方英雄使用，储存其灵魂。持续时间内若其死亡，则可以使用此技能复活ta。|n"+
-            Color_Define.COLOR_LAST_TIME + "→持续8秒|n" +
-            Color_Define.COLOR_CAST_RANGE + "→施法距离：700|n" +
-            Color_Define.COLOR_COOL_DOWN + "→CD:60s")
+        ..setTooltipNormalExtended(1, SoulGem.desc)
         ..setIconNormal("replaceabletextures\\commandbuttons\\wlg.blp")
 
     destroy editor

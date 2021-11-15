@@ -27,7 +27,7 @@ public class ArcaneCounterSpell extends ArcaneMageSkill
     static function cast()
         let owner = (GetTriggeringTrigger().getData() castTo ArcaneCounterSpell).owner_
         let target = GetSpellTargetUnit()
-        SkillHelper.counter_spell(owner, target)
+        SkillHelper.counter_spell(owner, target, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
 
 @compiletime
 function create_shadow_counter_spell()

@@ -62,7 +62,7 @@ public class Color_Define
     static let COLOR_ARCANEMAGE    = "|cffFF95CA"
     static let COLOR_FIREMAGE      = "|cffFF2D2D"
 
-    static let COLOR_MANA_DECREASE = "|cffCECEFF"
+    static let COLOR_ENERGY_DECREASE = "|cffCECEFF"
     static let COLOR_COOL_DOWN     = "|cffFFFF37"
     static let COLOR_HOT_KEY       = "|cffFFCC00"
     static let COLOR_NORMAL        = "|cffFFFFFF"

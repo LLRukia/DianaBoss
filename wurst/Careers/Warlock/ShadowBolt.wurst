@@ -7,33 +7,47 @@ import SoundUtils
 import TriggerHelper
 import SkillHelper
 import BossHelper
-import MathHelper
 import TimerUtils
 
 public class ShadowBolt extends WarlockSkill
-    static constant int self_id = 'wl0q'
+    static let self_id = 'wl0q'
     static let buff_id = 'wl1q'
     static let help_id = 'wl2q'
     static let effect_id = 'wl3q'
-    static constant real dmg = 300.
-    static constant real dmg_last = 100
-    static constant int dmg_times = 4
+    static let dmg = 300.
+    static let dmg_last = 100.
+    static let last_time = 9.
+    static let dmg_interval = 2.
+    static let dmg_times = (last_time / dmg_interval).toInt()
     static let radius = 150.
-    static let inc = vec2(5. ,3.)
+    static let inc = vec2(8., 5.)
     static let buff_down = 0.10
     static let max_dis = 1300.
+    static let mana_recovery = 150
+    static let cool_down = 8.
+    static let mana_cost = 70
+    static let energy_dec = 30.
+    static let energy_dec_last = 9.
+    static let speed_per_tick = 25.
+    static let move_tick_interval = 0.03
+    static let dmg_type = ATTACK_TYPE_MAGIC
+    static let desc = Color_Define.COLOR_NORMAL +
+        "→向指定方向射出一枚暗影箭。|n↓击中Boss后造成{0}伤害，降低其{1}%攻击速度，并每{2}秒对其造成{3}点伤害|n".format(
+            dmg.toString(1), (buff_down*100).toString(0), dmg_interval.toString(), dmg_last.toString(1)) +
+        "↑击中目标时为你回复{0}点魔法值。|n".format(mana_recovery.toString()) +
+        Color_Define.COLOR_ENERGY_DECREASE + "↓减少目标{0}点能量，后续每次造成伤害时减少目标{1}点能量。|n".format(energy_dec.toString(1), energy_dec_last.toString(1)) +
+        Color_Define.COLOR_WARLOCK + "↑ {0}%法术强度额外伤害，{1}%法术强度额外持续伤害（每次）|n".format((inc.x*100).toString(0), (inc.y*100).toString(0)) +
+        Color_Define.COLOR_LAST_TIME + "→持续{0}秒|n".format(last_time.toString(1)) +
+        Color_Define.COLOR_CAST_RANGE + "→最大距离：{0}|n".format(max_dis.toString(1)) +
+        Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
+
     static var launch = new SoundDefinition(Sounds.orbOfCorruptionMissile, false, true)
     static var hit = new SoundDefinition(Sounds.demonHunterMissileHit2, false, true)
     static var curse = new SoundDefinition(Sounds.demonHunterMissileHit1, false, true)
 
-    private timer m_tm_move
-    private real m_moved_dis
-    private vec2 m_cur_pos
-    private angle m_ang
-    private timer m_tm_dmg
-    private unit m_u_dmging
-    private int m_times
-    private unit m_effect
+    private timer last_dmg_timer_
+    private unit hit_unit_
+    private int last_dmg_done_times_
 
     construct(unit u)
         super(u)
@@ -45,119 +59,98 @@ public class ShadowBolt extends WarlockSkill
             ..setData(this castTo int)
 
     override function clear()
-        if m_tm_move != null
-            m_tm_move..pause()..destr()
-            m_tm_move = null
-        if m_tm_dmg != null
-            m_tm_dmg..pause()..destr()
-            m_tm_dmg = null
-        if m_effect != null
-            RemoveUnit(m_effect)
-            m_effect = null
+        hit_unit_ = null
+        if last_dmg_timer_ != null
+            last_dmg_timer_.release()
+            last_dmg_timer_ = null
 
     static function cast()
-        var obj = GetTriggeringTrigger().getData() castTo ShadowBolt
+        let self = GetTriggeringTrigger().getData() castTo ShadowBolt
 
-        location lc = GetSpellTargetLoc()
-        vec2 tgt = vec2(GetLocationX(lc),GetLocationY(lc))
+        let lc = GetSpellTargetLoc()
+        let target_pos = vec2(GetLocationX(lc),GetLocationY(lc))
         RemoveLocation(lc)
         
-        obj.m_cur_pos = obj.owner_.getPos()
-        obj.m_ang = obj.m_cur_pos.angleTo(tgt).asAngleDegrees()
-        obj.m_moved_dis = 0.
-        obj.m_effect = createUnit(obj.owner_.getOwner(), effect_id, obj.m_cur_pos, obj.m_ang)
-        launch.playOnPoint(obj.m_cur_pos.withZ(100))
-        obj.m_tm_move = CreateTimer()
-        obj.m_tm_move..setData(obj castTo int)
-            ..startPeriodic(0.04, function tm_cb)
+        let cur_pos = self.owner_.getPos()
+        let ang = cur_pos.angleTo(target_pos).asAngleDegrees()
+        new StraightMissile(effect_id, self.owner_, ang, speed_per_tick, max_dis, radius, new ShadowBoltFunctions(self))
+        launch.playOnPoint(cur_pos.withZ(100))
 
     function hit(unit u)
-        m_u_dmging = u
-        real final_dmg = dmg + GetHeroAgi(owner_, true) * inc.x
+        hit_unit_ = u
+        let final_dmg = dmg + GetHeroAgi(owner_, true) * inc.x
         StatisticsHelper.add_real(owner_.getOwner(), final_dmg)
-        owner_.damageTarget(u, final_dmg, ATTACK_TYPE_MAGIC)
+        owner_.damageTarget(u, final_dmg, dmg_type)
 
-
-        u.setMana(u.getMana() - 30)
+        u.setMana(u.getMana() - energy_dec)
         flashEffect("wlq.mdx", u.getPos3Real())
         hit.playOnPoint(u.getPos3Real())
+        owner_.setMana(owner_.getMana() + mana_recovery)
         flashEffect("cure.mdx", owner_.getPos3Real())
-        owner_.setMana(owner_.getMana() + 150)
-        int lev = owner_.getAbilityLevel(SiphonShadow.self_id)
-        if lev < 15
-            owner_.setAbilityLevel(SiphonShadow.self_id, lev + 1)
 
-        unit u_faker = createUnit(owner_.getOwner(), FAKE_CASTER, u.getPos(), angle(0))
-        u_faker..addAbility(ShadowBolt.help_id)..issueTargetOrder("cripple", u)..setTimedLife(1)
+        let siphone_shadow_level = owner_.getAbilityLevel(SiphonShadow.self_id)
+        if siphone_shadow_level < 15
+            owner_.setAbilityLevel(SiphonShadow.self_id, siphone_shadow_level + 1)
 
-        m_times = 0
-        m_tm_dmg = CreateTimer()
-        m_tm_dmg..setData(this castTo int)
-            ..startPeriodic(2, function tm_dmg)
+        createUnit(owner_.getOwner(), FAKE_CASTER, u.getPos(), angle(0))
+            ..addAbility(ShadowBolt.help_id)
+            ..issueTargetOrder("cripple", u)
+            ..setTimedLife(1)
 
-    static function tm_dmg()
-        var obj = GetExpiredTimer().getData() castTo ShadowBolt
-        if not obj.m_u_dmging.isAlive()
-            GetExpiredTimer()..pause()..destr()
+        last_dmg_done_times_ = 0
+        last_dmg_timer_ = getTimer()
+        last_dmg_timer_..setData(this castTo int)
+            ..startPeriodic(dmg_interval, function dmg_tick)
+
+    static function dmg_tick()
+        var self = GetExpiredTimer().getData() castTo ShadowBolt
+        if not self.hit_unit_.isAlive()
+            self.last_dmg_timer_.release()
+            self.last_dmg_timer_ = null
         
-        obj.m_times++
+        self.last_dmg_done_times_++
 
-        real final_dmg = dmg_last + GetHeroAgi(obj.owner_, true) * inc.y
-        StatisticsHelper.add_real(obj.owner_.getOwner(), final_dmg)
-        obj.owner_.damageTarget(obj.m_u_dmging, final_dmg)
-        obj.m_u_dmging.setMana(obj.m_u_dmging.getMana() - 9)
+        let final_dmg = dmg_last + GetHeroAgi(self.owner_, true) * inc.y
+        StatisticsHelper.add_real(self.owner_.getOwner(), final_dmg)
+        self.owner_.damageTarget(self.hit_unit_, final_dmg, dmg_type)
+        self.hit_unit_.setMana(self.hit_unit_.getMana() - energy_dec_last)
 
+        flashEffect("wlq1.mdx", self.hit_unit_.getPos3Real())
+        curse.playOnPoint(self.hit_unit_.getPos3Real())
 
-        flashEffect("wlq1.mdx", obj.m_u_dmging.getPos3Real())
-        curse.playOnPoint(obj.m_u_dmging.getPos3Real())
+        if self.last_dmg_done_times_ >= dmg_times
+            self.last_dmg_timer_.release()
+            self.last_dmg_timer_ = null
+            self.hit_unit_ = null
 
-        if obj.m_times >= dmg_times
-            GetExpiredTimer()..pause()..destr()
-        
-    static function tm_cb()
-        var obj = GetExpiredTimer().getData() castTo ShadowBolt
-        if obj.m_moved_dis >= ShadowBolt.max_dis
-            obj.m_tm_move..pause()..destr()
-            obj.m_tm_move = null
-            RemoveUnit(obj.m_effect)
-            obj.m_effect = null
+    static class ShadowBoltFunctions implements StraightMissileFunctions
+        ShadowBolt skill_obj
+        construct(ShadowBolt obj)
+            this.skill_obj = obj
+        override function filter(unit u) returns bool
+            return u.isBoss()
 
-        obj.m_cur_pos = MathHelper.forward(obj.m_cur_pos, obj.m_ang, 50)
-        obj.m_moved_dis += 50
-        obj.m_effect.setXY(obj.m_cur_pos)
-        group g = CreateGroup()
-        bool bhit = false
-        g.enumUnitsInRange(obj.m_cur_pos, ShadowBolt.radius)
-        for i in g
-            if i.isBoss()
-                obj.hit(i)
-                bhit = true
-                break
-
-        g.destr()
-        if bhit
-            obj.m_tm_move..pause()..destr()
-            obj.m_tm_move = null
-            RemoveUnit(obj.m_effect)
-            obj.m_effect = null
+        override function on_hit(unit u)
+            skill_obj.hit(u)
+            destroy this
 
 @compiletime
 function create_shadow_bolt_buff_adder()
-    var editor = EditorHelper.create_cripple_template(ShadowBolt.help_id, 9, ShadowBolt.buff_id)
+    let editor = EditorHelper.create_cripple_template(ShadowBolt.help_id, 9, ShadowBolt.buff_id)
     editor..setAttackSpeedReduction(1, ShadowBolt.buff_down)
         ..setMovementSpeedReduction(1, 0.0)
         ..setCastRange(1, 9999)
         ..setManaCost(1, 0)
         ..setCooldown(1, 0)
-        ..setDurationHero(1, 9)
-        ..setDurationNormal(1, 9)
+        ..setDurationHero(1, ShadowBolt.last_time)
+        ..setDurationNormal(1, ShadowBolt.last_time)
         ..setManaCost(1, 0)
         ..setCastRange(1, 99999)
         ..setCooldown(1, 0)
         ..setLevels(1)
         ..setRequirements("")
         ..setRequirementsLevels("")
-        ..setTargetsAllowed(1, "enemies,ground,air,organic")
+        ..setTargetsAllowed(1, TYPE_ALLOWED_ALL)
         ..setBuffs(1, ShadowBolt.buff_id.toRawCode())
         ..setName("ShadowBolt Boss")
 
@@ -165,46 +158,33 @@ function create_shadow_bolt_buff_adder()
 
 @compiletime
 function create_shadow_bolt_buff()
-    var editor = new BuffDefinition(ShadowBolt.buff_id, 'Bdet')
+    let editor = new BuffDefinition(ShadowBolt.buff_id, 'Bdet')
     editor..setName(1, "ShadowBolt")
         ..setTooltipNormal(1, Color_Define.COLOR_WARLOCK + "Shadow Bolt")
         ..setTooltipNormalExtended(1, Color_Define.COLOR_NORMAL + "此单位被暗影箭击中，减速了。")
         ..setArtTarget(1, "Abilities\\Spells\\Other\\AcidBomb\\BottleImpact.mdl")
         ..setTargetAttachments(1, 0)
         ..setIconNormal(1, "replaceabletextures\\commandbuttons\\wlq.blp")
-
-
-
     destroy editor
-    
+
 @compiletime
 function create_shadow_bolt()
-    var editor = EditorHelper.create_channel_template(ShadowBolt.self_id, emSkillKey.Q)
+    let editor = EditorHelper.create_channel_template(ShadowBolt.self_id, emSkillKey.Q)
     editor..setCastRange(1, 9999)
-        ..setManaCost(1, 70)
-        ..setCooldown(1, 8)
+        ..setManaCost(1, ShadowBolt.mana_cost)
+        ..setCooldown(1, ShadowBolt.cool_down)
         ..setButtonPositionNormalX(0)
         ..setButtonPositionNormalY(2)
         ..setHotkeyNormal("Q")
         ..setTargetType(1, emTargetType.Ground castTo int)
         ..setName("ShadowBolt")
-        ..setTooltipNormal(1,
-            Color_Define.COLOR_WARLOCK + "Shadow Bolt" +
-            Color_Define.COLOR_HOT_KEY + "(Q)")
-        ..setTooltipNormalExtended(1,
-            Color_Define.COLOR_NORMAL + "→向指定方向射出一枚暗影箭。|n↓击中Boss后造成300伤害，降低其10%攻击速度，并每两秒对其造成100点伤害|n" +
-            "↑击中目标时为你回复150点魔法值。|n"+
-            Color_Define.COLOR_MANA_DECREASE + "↓减少目标30点能量，后续每次造成伤害时减少目标9点能量。|n" +
-            Color_Define.COLOR_WARLOCK + "↑ 800%法术强度额外伤害，500%法术强度额外持续伤害（每次）|n" +
-            Color_Define.COLOR_LAST_TIME + "→持续9秒|n" +
-            Color_Define.COLOR_CAST_RANGE + "→最大距离：1300|n" +
-            Color_Define.COLOR_COOL_DOWN + "→CD:8s")
+        ..setTooltipNormal(1, Color_Define.COLOR_WARLOCK + "Shadow Bolt" + Color_Define.COLOR_HOT_KEY + "(Q)")
+        ..setTooltipNormalExtended(1, ShadowBolt.desc)
         ..setIconNormal("replaceabletextures\\commandbuttons\\wlq.blp")
-
     destroy editor
 
 @compiletime
 function create_shadow_bolt_faker()
-    var ed = EditorHelper.create_effect_faker_unit(ShadowBolt.effect_id, 1.5, "Abilities\\Spells\\Other\\BlackArrow\\BlackArrowMissile.mdl", color(255,255,255))
+    let ed = EditorHelper.create_effect_faker_unit(ShadowBolt.effect_id, 1.5, "Abilities\\Spells\\Other\\BlackArrow\\BlackArrowMissile.mdl", color(255,255,255))
     ed.setMovementHeight(100)
-    //
+    destroy ed

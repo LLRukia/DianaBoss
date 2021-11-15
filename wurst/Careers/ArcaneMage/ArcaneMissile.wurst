@@ -19,7 +19,7 @@ public class ArcaneMissile extends ArcaneMageSkill
     static let num = 1
     static let dmg_type = ATTACK_TYPE_MAGIC
     static let desc =  Color_Define.COLOR_NORMAL + "→向目标射出{0}枚奥术飞弹，造成{1}伤害。|n".format(num.toString(), dmg.toString(1)) +
-        Color_Define.COLOR_MANA_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
+        Color_Define.COLOR_ENERGY_DECREASE + "↓减少目标{0}点能量。|n".format(energy_dec.toString(1)) +
         Color_Define.COLOR_ICEMAGE + "↑ {0}%法术强度额外伤害|n".format((inc * 100).toString(0)) +
         Color_Define.COLOR_CAST_RANGE + "→施法距离：{0}|n".format(range.toString(0)) +
         Color_Define.COLOR_COOL_DOWN + "→CD:{0}s".format(cool_down.toString(1))
@@ -50,23 +50,24 @@ public class ArcaneMissile extends ArcaneMageSkill
             ang = GetRandomReal(30., 60.).asAngleDegrees()
 
         sound_launch.playOnPoint(caster.getPos3Real())
-        SkillHelper.auto_trace_missile_modify_speed(effect_id, target, caster, ang + caster.getFacing().asAngleDegrees(),
-            new ArcaneMissileCb(caster, target), 0, 55., 11., 55., 0)
+        new AutoTrace(effect_id, target, caster, ang + caster.getFacing().asAngleDegrees(),
+            new ArcaneMissileFunctions(caster, target)
+        ).set_speed(33., 7., 33., 0)
     
-public class ArcaneMissileCb implements SkillHelperCb
-    unit uc
-    unit ut
-    construct(unit uc, unit ut)
-        this.uc = uc
-        this.ut = ut
-    override function cb(int _obj)
-        let final_dmg = GetHeroAgi(uc, true) * ArcaneMissile.inc + ArcaneMissile.dmg
-        uc.damageTarget(ut, final_dmg, ArcaneMissile.dmg_type)
-        flashEffect("amq1.mdx", ut.getPos3Real())
-        flashEffect("amq2.mdx", ut.getPos3Real())
-        ut.setMana(ut.getMana() - ArcaneMissile.energy_dec)
-        StatisticsHelper.add_real(uc.getOwner(), final_dmg)
-        destroy this
+    static class ArcaneMissileFunctions implements AutoTraceFunctions
+        unit uc
+        unit ut
+        construct(unit uc, unit ut)
+            this.uc = uc
+            this.ut = ut
+        override function on_hit()
+            let final_dmg = GetHeroAgi(uc, true) * ArcaneMissile.inc + ArcaneMissile.dmg
+            uc.damageTarget(ut, final_dmg, ArcaneMissile.dmg_type)
+            flashEffect("amq1.mdx", ut.getPos3Real())
+            flashEffect("amq2.mdx", ut.getPos3Real())
+            ut.setMana(ut.getMana() - ArcaneMissile.energy_dec)
+            StatisticsHelper.add_real(uc.getOwner(), final_dmg)
+            destroy this
 
 @compiletime
 function create_arcane_bolt()

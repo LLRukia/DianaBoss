@@ -50,7 +50,7 @@ public class IceShield extends IceMageSkill
         (PlayerUnitHelper.get_instance(self.owner_) castTo PlayerUnit).set_invulnerable(true)
         self.timer_ = getTimer()
         self.timer_..setData(self castTo int)
-            ..startPeriodic(IceShield.last_time, function on_buff_expired)
+            ..start(IceShield.last_time, function on_buff_expired)
     
     static function on_buff_expired()
         let self = GetExpiredTimer().getData() castTo IceShield

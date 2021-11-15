@@ -15,6 +15,3 @@ public abstract class IBaseSkills
     abstract function on_buff_removed(unit _u)
 
     abstract function clear()
-
-    function get_owner() returns unit
-        return owner_

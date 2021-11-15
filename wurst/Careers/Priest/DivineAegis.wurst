@@ -32,7 +32,6 @@ public class DivineAegis extends PriestSkill
             ..addAction(function DivineAegis.cast)
             ..setData(this castTo int)
 
-
     override function on_buff_removed(unit u)
         if not assert(u == owner_, "D buff error, unit not matched")
             return
@@ -51,7 +50,7 @@ public class DivineAegis extends PriestSkill
         (PlayerUnitHelper.get_instance(self.owner_) castTo PlayerUnit).set_invulnerable(true)
         self.last_timer_ = getTimer()
         self.last_timer_..setData(self castTo int)
-            ..startPeriodic(DivineAegis.last_time, function on_buff_expired)
+            ..start(DivineAegis.last_time, function on_buff_expired)
     
     static function on_buff_expired()
         let self = GetExpiredTimer().getData() castTo DivineAegis

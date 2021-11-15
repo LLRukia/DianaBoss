@@ -57,8 +57,6 @@ class Rush
     real moved_dis = 0
     string effect_path = Rush.default_effect
 
-class FanShaped
-    
 public class Invulnerability
     trigger trigger_
     unit owner_ = null
@@ -80,77 +78,136 @@ public class Invulnerability
         trigger_..disable()..destr()
         timer_.release()
 
+public interface AutoTraceFunctions
+    function on_hit()
 
 public class AutoTrace
-    static let init_speed = 55.
-    static let init_speed_deca = 1.25
+    static let inertial_speed = 33.
+    static let inertial_speed_deca_per_tick = 1.
     static let init_trace_speed = 0.
-    static let trace_speed_inc = 2.5
-    static let max_speed = 55
-    static let tick_interval = 0.05
+    static let trace_speed_inc_per_tick = 1.8
+    static let max_trace_speed = 33.
+    static let tick_interval = 0.03
     unit target_
     unit caster_
     angle init_speed_ang_
-    SkillHelperCb cb_
-    int cb_arg_
+    AutoTraceFunctions f_
     unit faker_
     timer ticker_
-    real cur_ispd = init_speed
-    real cur_tspd = init_trace_speed
-    real ini_dec = init_speed_deca
-    real tra_inc = trace_speed_inc
+    real cur_inertial_speed = inertial_speed
+    real cur_trace_speed = init_trace_speed
+    real ini_dec = inertial_speed_deca_per_tick
+    real tra_inc = trace_speed_inc_per_tick
 
-    construct(int effect_id, unit ut, unit uc, angle ang, SkillHelperCb cb, int arg)
+    construct(int effect_id, unit ut, unit uc, angle ang, AutoTraceFunctions f)
         this.target_ = ut
         this.caster_ = uc
         this.init_speed_ang_ = ang
-        this.cb_ = cb
-        this.cb_arg_ = arg
+        this.f_ = f
         this.faker_ = createUnit(uc.getOwner(), effect_id, uc.getPos()+vec2(16,16), init_speed_ang_)
         ticker_ = getTimer()
         ticker_..setData(this castTo int)
-            ..startPeriodic(tick_interval, function tm_cb)
+            ..startPeriodic(tick_interval, function tick)
 
-    function set_speed(real init_speed, real its, real isd, real tsi)
-        cur_ispd = init_speed
-        cur_tspd = its
-        ini_dec = isd
-        tra_inc = tsi
+    function set_speed(real inertial_speed, real trace_speed, real inertial_speed_dec_per_tick, real trace_speed_inc_per_tick)
+        cur_inertial_speed = inertial_speed
+        cur_trace_speed = trace_speed
+        ini_dec = inertial_speed_dec_per_tick
+        tra_inc = trace_speed_inc_per_tick
 
     ondestroy
         ticker_.release()
         // use kill to play death effect
         KillUnit(faker_)
+        destroy this.f_
 
-    private static function tm_cb()
-        var obj = GetExpiredTimer().getData() castTo AutoTrace
-        obj.main()
+    private static function tick()
+        let self = GetExpiredTimer().getData() castTo AutoTrace
+        self._tick()
 
-    private function main()
+    private function _tick()
         if not target_.isAlive()
             target_ = caster_
-            cur_tspd = 0
+            cur_trace_speed = 0
             if not target_.isAlive()
                 destroy this
                 return
-                
-        vec2 curpos = faker_.getPos()
-        angle to_target = curpos.angleTo(target_.getPos()).asAngleDegrees()
-        vec2 sucpos = MathHelper.forward(curpos, to_target, cur_tspd)
-        if cur_tspd < max_speed
-            cur_tspd += trace_speed_inc
-        if cur_ispd > 0
-            sucpos = MathHelper.forward(sucpos, init_speed_ang_, cur_ispd)
-            cur_ispd -= init_speed_deca
+
+        let curpos = faker_.getPos()
+        var sucpos = MathHelper.forward(curpos, curpos.angleTo(target_.getPos()).asAngleDegrees(), cur_trace_speed)
+        if cur_trace_speed < max_trace_speed
+            cur_trace_speed += trace_speed_inc_per_tick
+        if cur_inertial_speed > 0
+            sucpos = MathHelper.forward(sucpos, init_speed_ang_, cur_inertial_speed)
+            cur_inertial_speed -= inertial_speed_deca_per_tick
         let face = curpos.angleTo(sucpos)
         faker_..setFacing(face)..setXY(sucpos)
         if (sucpos - target_.getPos()).lengthSq() <= 56*56.
             if target_ != caster_
-                cb_.cb(cb_arg_)
+                f_.on_hit()
             destroy this
 
-public interface SkillHelperCb
-    function cb(int _obj)
+public interface StraightMissileFunctions
+    function filter(unit u) returns bool
+
+    function on_hit(unit u)
+
+public class StraightMissile
+    static let tick_interval = 0.03
+    unit caster_
+    angle angle_
+    AutoTraceFunctions cb_
+    unit faker_
+    timer ticker_
+    real speed_
+    real max_dis_
+    real radius_
+    StraightMissileFunctions f_
+
+    real already_moved_
+
+    construct(int effect_id, unit uc, angle ang, real speed, real max_dis, real radius, StraightMissileFunctions f)
+        this.caster_ = uc
+        this.angle_ = ang
+        this.speed_ = speed
+        this.max_dis_ = max_dis
+        this.radius_ = radius
+        this.f_ = f
+        this.faker_ = createUnit(uc.getOwner(), effect_id, uc.getPos()+vec2(16,16), angle_)
+        ticker_ = getTimer()
+        ticker_..setData(this castTo int)
+            ..startPeriodic(tick_interval, function tick)
+
+    ondestroy
+        ticker_.release()
+        // use kill to play death effect
+        KillUnit(faker_)
+        destroy this.f_
+
+    static function tick()
+        var self = GetExpiredTimer().getData() castTo StraightMissile
+        if self.already_moved_ >= self.max_dis_
+            self.ticker_.release()
+            self.ticker_ = null
+            KillUnit(self.faker_)
+            self.faker_ = null
+            return
+
+        let curpos = self.faker_.getPos()
+        let pos = MathHelper.forward(curpos, self.angle_, self.speed_)
+        self.already_moved_ += self.speed_
+        self.faker_.setXY(pos)
+        let g = CreateGroup()
+        bool bhit = false
+        g.enumUnitsInRange(pos, self.radius_)
+        for i in g
+            if self.f_.filter(i)
+                self.f_.on_hit(i)
+                bhit = true
+                break
+        g.destr()
+        if bhit
+            destroy self
 
 public class SkillHelper
     static function rush(unit u, angle ang, real dis, real speed, bool pauseUnit, string effect_path)
@@ -161,7 +218,7 @@ public class SkillHelper
     static function protect(unit u) returns Invulnerability
         return new Invulnerability(u)
 
-    static function counter_spell(unit caster, unit target) returns bool
+    static function counter_spell(unit caster, unit target, string effect_path) returns bool
         if BossHelper.counter(target)
             let speed = 64 * 0.071 / 128
             let angle = 90.
@@ -171,16 +228,13 @@ public class SkillHelper
                 ..setLifespan(3.)
                 ..setVelocity(speed * CosBJ(angle), speed * SinBJ(angle))
             SoundPlayer.counter_spell()
-            target.addEffect("Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl", "chest").destr()
+            target.addEffect(effect_path, "chest").destr()
             return true
         return false
 
-    static function auto_trace_missile(int effect_id, unit target_unit, unit caster, angle ang, SkillHelperCb cb, int arg)
-        new AutoTrace(effect_id, target_unit, caster, ang, cb, arg)
-
-    static function auto_trace_missile_modify_speed(int effect_id, unit target_unit, unit caster, angle ang, SkillHelperCb cb,
-        int arg, real init_speed, real init_speed_deca, real init_trace_speed, real trace_speed_inc)
-        new AutoTrace(effect_id, target_unit, caster, ang, cb, arg).set_speed(init_speed, init_speed_deca, init_trace_speed, trace_speed_inc)
+    static function auto_trace_missile_modify_speed(int effect_id, unit target_unit, unit caster, angle ang, AutoTraceFunctions cb,
+        real init_speed, real init_speed_deca, real init_trace_speed, real trace_speed_inc)
+        new AutoTrace(effect_id, target_unit, caster, ang, cb).set_speed(init_speed, init_speed_deca, init_trace_speed, trace_speed_inc)
 
     static function blink_forward(unit caster, angle ang, int dis) returns vec2
         vec2 pos = caster.getPos()
